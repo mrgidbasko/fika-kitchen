@@ -32,7 +32,12 @@
 
 <div class="app">
   <div class="header">
-    <div class="brand" id="brand-tap">Fika <em>Kitchen</em></div>
+    <div class="header-top">
+      <div class="brand-wrap">
+        <div class="brand" id="brand-tap" style="margin-bottom:0;">Fika <em>Kitchen</em></div>
+        <div class="net-dot" id="net-dot"></div>
+      </div>
+    </div>
     <div class="search-wrap">
       <svg class="search-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6">
         <circle cx="7" cy="7" r="4.5"/><line x1="10.5" y1="10.5" x2="14" y2="14"/>
@@ -327,7 +332,6 @@
   <div class="crop-hint">Двигай пальцем · Сведи/разведи для зума</div>
 </div>
 
-<button class="theme-btn" id="theme-btn" onclick="toggleTheme()" title="Тема">🌙</button>
 
 <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/Sortable.min.js"></script>
 <script src="config.js"></script>

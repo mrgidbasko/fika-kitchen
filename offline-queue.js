@@ -95,8 +95,10 @@ var OfflineQueue = (function() {
     if (!navigator.onLine) return;
 
     _processing = true;
+    _updateNetDot('syncing');
     _processNext(queue, 0, function() {
       _processing = false;
+      _updateNetDot(navigator.onLine ? 'online' : 'offline');
       _updateBadge();
     });
   }
@@ -163,18 +165,33 @@ var OfflineQueue = (function() {
   // ── Слушатели сети ───────────────────────────────────────
   window.addEventListener('online', function() {
     console.log('[OfflineQueue] Online — flushing queue...');
-    setTimeout(flush, 500); // небольшая задержка чтобы сеть успела подняться
+    _updateNetDot('online');
+    setTimeout(flush, 500);
+  });
+
+  window.addEventListener('offline', function() {
+    _updateNetDot('offline');
   });
 
   // Инициализация индикатора после загрузки DOM
   document.addEventListener('DOMContentLoaded', function() {
     _injectBadge();
     _updateBadge();
+    _updateNetDot(navigator.onLine ? 'online' : 'offline');
     // Попробуем отправить при старте если есть очередь и есть сеть
     if (navigator.onLine && count() > 0) {
       setTimeout(flush, 1500);
     }
   });
+
+  function _updateNetDot(state) {
+    // state: 'online' | 'offline' | 'syncing'
+    var dot = document.getElementById('net-dot');
+    if (!dot) return;
+    dot.classList.remove('offline', 'syncing');
+    if (state === 'offline') dot.classList.add('offline');
+    if (state === 'syncing') dot.classList.add('syncing');
+  }
 
   function _injectBadge() {
     if (document.getElementById('offline-queue-badge')) return;

@@ -80,18 +80,28 @@ body.dark .zone-label{color:var(--text-primary)}
 body.dark .section-card-label{color:var(--text-primary)}
 body.dark .section-card.special-card .section-card-label{color:#fff}
 
-/* ---- THEME BUTTON ---- */
+/* ---- THEME TOGGLE (iOS style, back-btn colors) ---- */
 .theme-btn{
-  position:fixed;bottom:24px;left:20px;
-  width:48px;height:48px;border-radius:50%;
-  background:var(--surface);border:1px solid var(--border);
-  box-shadow:var(--shadow-lg);cursor:pointer;
-  display:flex;align-items:center;justify-content:center;
-  font-size:22px;z-index:200;
-  transition:transform .15s;
+  position:relative;
+  width:44px;height:26px;border-radius:13px;
+  background:var(--surface2);
+  border:1px solid var(--border);
+  box-shadow:var(--shadow);
+  cursor:pointer;padding:0;flex-shrink:0;
+  transition:opacity .15s;
   -webkit-tap-highlight-color:transparent;
 }
-.theme-btn:active{transform:scale(.92)}
+.theme-btn::after{
+  content:'';position:absolute;
+  width:20px;height:20px;border-radius:50%;
+  background:var(--surface);
+  border:1px solid var(--border);
+  box-shadow:var(--shadow);
+  top:2px;left:2px;
+  transition:transform .25s;
+}
+body.dark .theme-btn::after{ transform:translateX(18px); }
+.theme-btn:active{ opacity:.7; }
 
 /* ---- VIEWS ---- */
 .view{display:none;animation:fadeUp .2s ease}
@@ -486,44 +496,50 @@ body.dark button.admin-btn.delete {
    UNIFIED SERVICE BUTTONS — match .back-btn style
    ============================================================ */
 
-/* ✏️ Цеха и ⚙ Разделы — header action buttons */
+/* ✏️ Все кнопки действий — одинаковый стиль с .back-btn */
 #edit-zones-btn,
 #manage-sections-btn,
 #cutting-edit-products-btn,
 #cutting-export-btn {
   background: var(--surface) !important;
   border: 1px solid var(--border) !important;
-  border-radius: var(--radius-sm) !important;
+  border-radius: 50% !important;
   box-shadow: var(--shadow) !important;
   color: var(--text-secondary) !important;
-  font-size: 13px !important;
+  width: 36px !important;
+  height: 36px !important;
+  padding: 0 !important;
+  font-size: 12px !important;
   font-weight: 500 !important;
-  padding: 7px 12px !important;
   cursor: pointer !important;
   font-family: 'DM Sans', sans-serif !important;
-  transition: box-shadow .15s, opacity .15s !important;
+  transition: opacity .15s !important;
+  display: none;
+  align-items: center !important;
+  justify-content: center !important;
+  flex-shrink: 0 !important;
 }
 #edit-zones-btn:active,
 #manage-sections-btn:active,
 #cutting-edit-products-btn:active,
 #cutting-export-btn:active {
-  opacity: .75 !important;
+  opacity: .7 !important;
   box-shadow: none !important;
 }
 
-/* 🌙/☀️ Theme button — same circle as back-btn */
+/* 🌙/☀️ Theme toggle — back-btn colors */
 .theme-btn {
-  background: var(--surface) !important;
+  background: var(--surface2) !important;
   border: 1px solid var(--border) !important;
   box-shadow: var(--shadow) !important;
   width: 44px !important;
-  height: 44px !important;
-  border-radius: 50% !important;
-  font-size: 20px !important;
+  height: 26px !important;
+  border-radius: 13px !important;
+  font-size: 0 !important;
 }
 .theme-btn:active {
-  opacity: .75 !important;
-  transform: scale(.93) !important;
+  opacity: .7 !important;
+  transform: none !important;
 }
 
 /* + Добавить — dashed outline → solid subtle */
@@ -608,54 +624,38 @@ body.dark button.admin-btn.delete {
 }
 /* JS sets display:block — override to flex for centering */
 #edit-zones-btn[style*="block"],
-#manage-sections-btn[style*="block"] {
+#manage-sections-btn[style*="block"],
+#cutting-edit-products-btn[style*="block"],
+#cutting-export-btn[style*="block"] {
   display: flex !important;
 }
 
-/* ---- G2 gear buttons — identical to .back-btn ---- */
-#edit-zones-btn,
-#manage-sections-btn {
-  width: 36px !important;
-  height: 36px !important;
-  border-radius: 50% !important;
-  padding: 0 !important;
-  background: var(--surface) !important;
-  border: 1px solid var(--border) !important;
-  box-shadow: var(--shadow) !important;
-  display: none;
-  align-items: center !important;
-  justify-content: center !important;
-  flex-shrink: 0;
-  color: var(--text-muted) !important;
-  transition: opacity .15s !important;
+/* ============================================================
+   ЭТАП 6 — Индикатор сети + Этап 5 — toggle в шапке
+   ============================================================ */
+
+/* Шапка главного экрана с toggle */
+.header-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 14px;
 }
-#edit-zones-btn[style*="block"],
-#manage-sections-btn[style*="block"] {
-  display: flex !important;
-}
-#edit-zones-btn:active,
-#manage-sections-btn:active {
-  opacity: .7 !important;
-  box-shadow: none !important;
+.brand-wrap {
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 
-/* ---- Cutting gear button — same as back-btn ---- */
-#cutting-edit-products-btn {
-  width: 36px !important;
-  height: 36px !important;
-  border-radius: 50% !important;
-  padding: 0 !important;
-  background: var(--surface) !important;
-  border: 1px solid var(--border) !important;
-  box-shadow: var(--shadow) !important;
-  display: none;
-  align-items: center !important;
-  justify-content: center !important;
-  color: var(--text-muted) !important;
-  transition: opacity .15s !important;
+/* Точка статуса сети */
+.net-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #639922;
   flex-shrink: 0;
+  transition: background .3s;
 }
-#cutting-edit-products-btn[style*="block"] {
-  display: flex !important;
-}
-#cutting-edit-products-btn:active { opacity: .7 !important; box-shadow: none !important; }
+.net-dot.offline  { background: #e24b4a; }
+.net-dot.syncing  { background: #e8a020; animation: net-blink .8s infinite; }
+@keyframes net-blink { 0%,100%{opacity:1} 50%{opacity:.25} }

@@ -112,13 +112,20 @@
     var wrapper = document.createElement('div');
     wrapper.style.cssText = 'position:relative;display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;';
 
-    var spacer = document.createElement('div');
-    spacer.style.width = '36px';
-
     var profileBtn = document.createElement('button');
     profileBtn.id = 'profile-btn';
     profileBtn.style.cssText = 'width:36px;height:36px;border-radius:50%;background:#C04F14;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;';
     profileBtn.innerHTML = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>';
+
+    // Theme toggle — вставляем рядом с профилем
+    var themeToggle = document.getElementById('theme-btn');
+    if (!themeToggle) {
+      themeToggle = document.createElement('button');
+      themeToggle.id = 'theme-btn';
+      themeToggle.className = 'theme-btn';
+      themeToggle.title = 'Тема';
+      themeToggle.onclick = function() { if (typeof toggleTheme === 'function') toggleTheme(); };
+    }
 
     var menu = document.createElement('div');
     menu.id = 'profile-menu';
@@ -174,9 +181,21 @@
     });
 
     brand.parentNode.insertBefore(wrapper, brand);
-    wrapper.appendChild(spacer);
-    wrapper.appendChild(brand);
-    wrapper.appendChild(profileBtn);
+
+    // Левая группа: точка сети + название
+    var leftGroup = document.createElement('div');
+    leftGroup.style.cssText = 'display:flex;align-items:center;gap:8px;';
+    var netDot = document.getElementById('net-dot');
+    if (netDot) leftGroup.appendChild(netDot);
+    leftGroup.appendChild(brand);
+    wrapper.appendChild(leftGroup);
+
+    // Правая группа: toggle + профиль
+    var rightGroup = document.createElement('div');
+    rightGroup.style.cssText = 'display:flex;align-items:center;gap:10px;flex-shrink:0;';
+    rightGroup.appendChild(themeToggle);
+    rightGroup.appendChild(profileBtn);
+    wrapper.appendChild(rightGroup);
     wrapper.appendChild(menu);
   }
 
