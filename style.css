@@ -539,10 +539,21 @@ body.dark button.admin-btn.delete {
   cursor: pointer !important;
   font-family: 'DM Sans', sans-serif !important;
   transition: opacity .15s !important;
-  display: none;
   align-items: center !important;
   justify-content: center !important;
   flex-shrink: 0 !important;
+}
+
+/* Шестерёнки скрыты по умолчанию — JS показывает */
+#edit-zones-btn,
+#manage-sections-btn,
+#cutting-edit-products-btn {
+  display: none;
+}
+
+/* Excel кнопка — всегда flex, JS скрывает для cook через style */
+#cutting-export-btn {
+  display: flex !important;
 }
 #edit-zones-btn:active,
 #manage-sections-btn:active,
@@ -591,24 +602,6 @@ body.dark button.admin-btn.delete {
   box-shadow: 0 2px 8px rgba(192,79,20,.22) !important;
 }
 
-/* ---- Цеха button — right side, matches back-btn style ---- */
-#edit-zones-btn {
-  display: none; /* shown via JS */
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
-  box-shadow: var(--shadow);
-  color: var(--text-secondary);
-  font-size: 13px;
-  font-weight: 500;
-  padding: 7px 12px;
-  cursor: pointer;
-  font-family: 'DM Sans', sans-serif;
-  transition: opacity .15s;
-  margin-left: auto; /* push to right */
-}
-#edit-zones-btn:active { opacity: .75; }
-
 /* ---- Новая запись button — full width orange ---- */
 .cutting-new-btn {
   display: flex;
@@ -635,23 +628,10 @@ body.dark button.admin-btn.delete {
   box-shadow: none;
 }
 
-/* ---- Gear icon buttons — круглые как back-btn ---- */
-#edit-zones-btn,
-#manage-sections-btn {
-  width: 36px !important;
-  height: 36px !important;
-  border-radius: 50% !important;
-  padding: 0 !important;
-  display: none; /* shown via JS */
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-}
-/* JS sets display:block — override to flex for centering */
+/* JS sets display:block — override to flex */
 #edit-zones-btn[style*="block"],
 #manage-sections-btn[style*="block"],
-#cutting-edit-products-btn[style*="block"],
-#cutting-export-btn[style*="block"] {
+#cutting-edit-products-btn[style*="block"] {
   display: flex !important;
 }
 
