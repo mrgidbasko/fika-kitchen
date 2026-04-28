@@ -57,4 +57,4 @@ self.addEventListener('fetch', function(e) {
       return cached || fetch(e.request);
     })
   );
-}); 
+});   
