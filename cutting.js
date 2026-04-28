@@ -1,7 +1,10 @@
 // cutting.js — Разделка v2
 // ============================================================
 
-var CUTTING_FB = 'https://fika-d21a6-default-rtdb.europe-west1.firebasedatabase.app/cutting';
+// DB_PREFIX задаётся в config.js (''/'/dev') — DEV/PROD автоматически по домену
+var CUTTING_FB = 'https://fika-d21a6-default-rtdb.europe-west1.firebasedatabase.app'
+  + (typeof DB_PREFIX !== 'undefined' ? DB_PREFIX : '')
+  + '/cutting';
 
 var CUTTING_PRODUCTS_DEFAULT = [
   'Форель', 'Лосось', 'Сёмга', 'Окунь', 'Судак',

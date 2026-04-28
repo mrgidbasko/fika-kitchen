@@ -8,15 +8,15 @@ var ADMIN_PIN    = '1234'; // резервный PIN (используется �
 // FIREBASE REST API
 // ============================================================
 function fbGet(path) {
-  return fetch(FIREBASE_URL + path + '.json').then(function(r){ return r.json(); });
+  return fetch(FIREBASE_URL + DB_PREFIX + path + '.json').then(function(r){ return r.json(); });
 }
 function fbSet(path, data) {
-  return fetch(FIREBASE_URL + path + '.json', {
+  return fetch(FIREBASE_URL + DB_PREFIX + path + '.json', {
     method: 'PUT', headers: {'Content-Type':'application/json'}, body: JSON.stringify(data)
   }).then(function(r){ return r.json(); });
 }
 function fbUpdate(path, data) {
-  return fetch(FIREBASE_URL + path + '.json', {
+  return fetch(FIREBASE_URL + DB_PREFIX + path + '.json', {
     method: 'PATCH', headers: {'Content-Type':'application/json'}, body: JSON.stringify(data)
   }).then(function(r){ return r.json(); });
 }
