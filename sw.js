@@ -1,10 +1,11 @@
-var CACHE = 'fika-v3';
+var CACHE = 'fika-v4';
 var FILES = [
   '/',
   '/index.html',
   '/style.css',
   '/app.js',
   '/data.js',
+  '/offline-queue.js',
   'https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700&family=DM+Sans:wght@300;400;500&display=swap'
 ];
 
@@ -57,4 +58,4 @@ self.addEventListener('fetch', function(e) {
       return cached || fetch(e.request);
     })
   );
-});   
+});
