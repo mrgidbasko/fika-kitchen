@@ -18,6 +18,33 @@ var cuttingFilterFrom  = null; // 'YYYY-MM-DD'
 var cuttingFilterTo    = null; // 'YYYY-MM-DD'
 
 // ============================================================
+// OFFLINE QUEUE — регистрация обработчика (Этап 5)
+// ============================================================
+document.addEventListener('DOMContentLoaded', function() {
+  if (typeof OfflineQueue === 'undefined') return;
+
+  // Обработчик: отправить запись разделки в Firebase
+  OfflineQueue.register('cutting_record', function(item) {
+    return cFbPush('/records', item.data).then(function(res) {
+      if (res && res.name) {
+        // Удаляем локальный placeholder и ставим реальный ключ
+        if (item._localId && cuttingRecords[item._localId]) {
+          delete cuttingRecords[item._localId];
+        }
+        cuttingRecords[res.name] = item.data;
+      }
+    });
+  });
+
+  // После синхронизации — перерисовываем экран разделки
+  OfflineQueue.onSynced(function(item) {
+    if (item.type !== 'cutting_record') return;
+    renderCuttingMain();
+    if (cuttingViewProduct === item.data.product) renderCuttingProductList();
+  });
+});
+
+// ============================================================
 // HELPERS
 // ============================================================
 
@@ -609,19 +636,42 @@ function saveCuttingRecord() {
       console.error('Edit error:', e);
     });
   } else {
-    // New record — with retry
-    cFbPushSafe('/records', record).then(function(res) {
-      if (res && res.name) cuttingRecords[res.name] = record;
-      btn.disabled=false; btn.textContent='Сохранить';
+    // New record
+    if (!navigator.onLine && typeof OfflineQueue !== 'undefined') {
+      // ── ОФЛАЙН: сохраняем локально в очередь ──
+      var localId = OfflineQueue.enqueue({ type: 'cutting_record', data: record });
+      cuttingRecords[localId] = Object.assign({}, record, { _pending: true });
+      btn.disabled = false; btn.textContent = 'Сохранить';
       closeCuttingForm();
       renderCuttingMain();
-      if (cuttingViewProduct===product) renderCuttingProductList();
-    }).catch(function(e) {
-      btn.disabled=false; btn.textContent='Сохранить';
-      errEl.textContent='Ошибка сохранения! Проверь интернет и попробуй снова.';
-      errEl.style.display='block';
-      console.error('Save error:', e);
-    });
+      if (cuttingViewProduct === product) renderCuttingProductList();
+      _showCuttingToast('Нет сети — запись сохранена и отправится автоматически');
+    } else {
+      // ── ОНЛАЙН: обычный путь с retry ──
+      cFbPushSafe('/records', record).then(function(res) {
+        if (res && res.name) cuttingRecords[res.name] = record;
+        btn.disabled=false; btn.textContent='Сохранить';
+        closeCuttingForm();
+        renderCuttingMain();
+        if (cuttingViewProduct===product) renderCuttingProductList();
+      }).catch(function(e) {
+        // Сеть упала во время запроса — кладём в очередь
+        if (typeof OfflineQueue !== 'undefined') {
+          var localId = OfflineQueue.enqueue({ type: 'cutting_record', data: record });
+          cuttingRecords[localId] = Object.assign({}, record, { _pending: true });
+          btn.disabled = false; btn.textContent = 'Сохранить';
+          closeCuttingForm();
+          renderCuttingMain();
+          if (cuttingViewProduct === product) renderCuttingProductList();
+          _showCuttingToast('Ошибка сети — запись сохранена и отправится автоматически');
+        } else {
+          btn.disabled=false; btn.textContent='Сохранить';
+          errEl.textContent='Ошибка сохранения! Проверь интернет и попробуй снова.';
+          errEl.style.display='block';
+          console.error('Save error:', e);
+        }
+      });
+    }
   }
 }
 
@@ -691,6 +741,41 @@ function saveCuttingProducts() {
   cFbSet('/products', products).then(function() {
     closeCuttingProductsEditor();
   }).catch(function() { alert('Ошибка сохранения'); });
+}
+
+// ============================================================
+// TOAST — уведомление об офлайн-сохранении (Этап 5)
+// ============================================================
+function _showCuttingToast(msg) {
+  var toast = document.getElementById('cutting-toast');
+  if (!toast) {
+    toast = document.createElement('div');
+    toast.id = 'cutting-toast';
+    toast.style.cssText = [
+      'position:fixed',
+      'bottom:140px',
+      'left:50%',
+      'transform:translateX(-50%)',
+      'background:rgba(30,30,30,0.92)',
+      'color:#fff',
+      'font-size:12px',
+      'font-weight:500',
+      'padding:8px 16px',
+      'border-radius:20px',
+      'z-index:9999',
+      'pointer-events:none',
+      'opacity:0',
+      'transition:opacity 0.3s',
+      'max-width:280px',
+      'text-align:center',
+      'white-space:normal'
+    ].join(';');
+    document.body.appendChild(toast);
+  }
+  toast.textContent = msg;
+  toast.style.opacity = '1';
+  clearTimeout(toast._timer);
+  toast._timer = setTimeout(function() { toast.style.opacity = '0'; }, 3500);
 }
 
 // ============================================================
