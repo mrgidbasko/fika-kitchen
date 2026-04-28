@@ -1,0 +1,661 @@
+/* ============================================================
+   FIKA KITCHEN — style.css
+   ============================================================ */
+:root{
+  --bg:#F7F4EF;--surface:#FFF;--surface2:#F0EDE8;
+  --accent:#1A1A1A;--accent2:#C04F14;
+  --text-primary:#1A1A1A;--text-secondary:#6B6560;--text-muted:#ABA59E;
+  --border:rgba(26,26,26,.08);--border-strong:rgba(26,26,26,.15);
+  --radius:16px;--radius-sm:10px;
+  --shadow:0 1px 3px rgba(0,0,0,.06),0 4px 16px rgba(0,0,0,.04);
+  --shadow-lg:0 8px 32px rgba(0,0,0,.10);
+}
+
+/* NO SELECT / NO CALLOUT / NO ZOOM */
+*{
+  box-sizing:border-box;margin:0;padding:0;
+  -webkit-tap-highlight-color:transparent;
+  -webkit-touch-callout:none;
+  user-select:none;
+  -webkit-user-select:none;
+}
+input,textarea,select{
+  user-select:text;
+  -webkit-user-select:text;
+}
+
+/* NO OVERSCROLL BOUNCE */
+html{
+  overscroll-behavior:none;
+  overflow:hidden;
+  height:100%;
+  position:fixed;
+  width:100%;
+  background:var(--bg);
+}
+
+body{
+  overscroll-behavior:none;
+  overflow:hidden;
+  height:100%;
+  position:fixed;
+  width:100%;
+  font-family:'DM Sans',sans-serif;
+  background:var(--bg);
+  color:var(--text-primary);
+  /* Cover iPhone notch/Dynamic Island area */
+  padding-top:env(safe-area-inset-top);
+  padding-left:env(safe-area-inset-left);
+  padding-right:env(safe-area-inset-right);
+}
+
+/* SINGLE SCROLL CONTAINER */
+.app{
+  max-width:430px;
+  margin:0 auto;
+  height:100%;
+  overflow-y:auto;
+  overflow-x:hidden;
+  -webkit-overflow-scrolling:touch;
+  overscroll-behavior:contain;
+  background:var(--bg);
+  position:relative;
+  padding-bottom:120px;
+}
+
+/* ---- DARK THEME ---- */
+body.dark{
+  --bg:#141414;
+  --surface:#1E1E1E;
+  --surface2:#252525;
+  --text-primary:#F0EDE8;
+  --text-secondary:#A09990;
+  --text-muted:#5A5550;
+  --border:rgba(255,255,255,.08);
+  --border-strong:rgba(255,255,255,.15);
+  --shadow:0 1px 3px rgba(0,0,0,.3),0 4px 16px rgba(0,0,0,.2);
+  --shadow-lg:0 8px 32px rgba(0,0,0,.4);
+}
+body.dark .zone-label{color:var(--text-primary)}
+body.dark .section-card-label{color:var(--text-primary)}
+body.dark .section-card.special-card .section-card-label{color:#fff}
+
+/* ---- THEME BUTTON ---- */
+.theme-btn{
+  position:fixed;bottom:24px;left:20px;
+  width:48px;height:48px;border-radius:50%;
+  background:var(--surface);border:1px solid var(--border);
+  box-shadow:var(--shadow-lg);cursor:pointer;
+  display:flex;align-items:center;justify-content:center;
+  font-size:22px;z-index:200;
+  transition:transform .15s;
+  -webkit-tap-highlight-color:transparent;
+}
+.theme-btn:active{transform:scale(.92)}
+
+/* ---- VIEWS ---- */
+.view{display:none;animation:fadeUp .2s ease}
+.view.active{display:block}
+@keyframes fadeUp{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+
+/* ---- HEADER ---- */
+.header{
+  padding:max(54px, calc(20px + env(safe-area-inset-top))) 20px 16px;
+  background:var(--bg);
+  position:sticky;top:0;z-index:100;
+  border-bottom:1px solid var(--border);
+}
+.brand{
+  font-family:'Syne',sans-serif;font-size:22px;font-weight:700;
+  letter-spacing:-.5px;text-align:center;margin-bottom:14px;cursor:default;
+}
+.brand em{color:var(--accent2);font-style:normal}
+.search-wrap{position:relative}
+.search-icon{
+  position:absolute;left:14px;top:50%;transform:translateY(-50%);
+  color:var(--text-muted);pointer-events:none;width:16px;height:16px;
+}
+.search-input{
+  width:100%;background:var(--surface);border:1px solid var(--border);
+  border-radius:var(--radius-sm);padding:11px 14px 11px 40px;
+  font-family:'DM Sans',sans-serif;font-size:14px;color:var(--text-primary);
+  outline:none;transition:border-color .2s;
+  user-select:text;-webkit-user-select:text;
+}
+.search-input:focus{border-color:var(--accent2)}
+.search-input::placeholder{color:var(--text-muted)}
+
+/* ---- ZONES ---- */
+.zones-wrap{padding:20px 20px 0}
+.zones-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.zone-card{
+  background:var(--surface);border:1px solid var(--border);
+  border-radius:var(--radius);padding:26px 14px;
+  cursor:pointer;display:flex;align-items:center;justify-content:center;
+  min-height:96px;transition:transform .13s,box-shadow .13s;
+  box-shadow:var(--shadow);text-align:center;
+}
+.zone-card:active{transform:scale(.97)}
+.zone-label{font-family:'Syne',sans-serif;font-size:17px;font-weight:600;color:var(--text-primary);line-height:1.2}
+
+/* ---- SECTION GRID ---- */
+.section-wrap{padding:0 20px}
+.section-header{display:flex;align-items:center;gap:12px;padding:20px 0 18px}
+.back-btn{
+  width:36px;height:36px;border-radius:50%;
+  background:var(--surface);border:1px solid var(--border);
+  display:flex;align-items:center;justify-content:center;
+  cursor:pointer;flex-shrink:0;box-shadow:var(--shadow);
+}
+.back-btn:active{background:var(--surface2)}
+.section-title{font-family:'Syne',sans-serif;font-size:22px;font-weight:700;letter-spacing:-.3px}
+.section-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.section-card{
+  background:var(--surface);border:1px solid var(--border);
+  border-radius:var(--radius);padding:26px 14px;
+  cursor:pointer;text-align:center;
+  transition:transform .13s,box-shadow .13s;
+  box-shadow:var(--shadow);
+  display:flex;align-items:center;justify-content:center;
+  position:relative;
+}
+.section-card:active{transform:scale(.97)}
+.section-card-label{font-family:'Syne',sans-serif;font-size:19px;font-weight:700;line-height:1.2}
+.section-card.special-card{background:var(--accent2);border-color:var(--accent2)}
+.section-card.special-card .section-card-label{color:#fff}
+
+/* ---- LIST ---- */
+.list-wrap{padding:0 20px}
+.list-header{display:flex;align-items:center;justify-content:space-between;padding:20px 0 18px}
+.list-header-left{display:flex;align-items:center;gap:12px}
+.item-row{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:15px 0;border-bottom:1px solid var(--border);
+  cursor:pointer;transition:opacity .13s;
+  position:relative;
+}
+.item-row:last-child{border-bottom:none}
+.item-row:active{opacity:.6}
+.item-row.sortable-ghost{opacity:.3;background:var(--surface2)}
+.item-row.sortable-drag{box-shadow:var(--shadow-lg);background:var(--surface)}
+.item-name{font-size:16px;font-weight:500;line-height:1.3;flex:1}
+.item-arrow{color:var(--text-muted);flex-shrink:0;margin-left:12px}
+.empty-state{text-align:center;padding:48px 0;color:var(--text-muted);font-size:14px}
+.search-section-label{font-size:11px;font-weight:500;letter-spacing:.7px;text-transform:uppercase;color:var(--text-muted);padding:14px 0 6px}
+
+/* ---- EDIT BUTTON (unified) ---- */
+.edit-btn{
+  background:none;border:none;cursor:pointer;
+  color:var(--text-muted);padding:6px 8px 6px 4px;
+  flex-shrink:0;transition:color .15s;
+  display:flex;align-items:center;
+  -webkit-tap-highlight-color:transparent;
+}
+.edit-btn:active{color:var(--accent2)}
+
+/* section card edit button */
+.section-card .edit-btn{
+  position:absolute;top:6px;right:6px;
+  padding:4px;opacity:0;
+  transition:opacity .15s;
+}
+.section-card:hover .edit-btn{opacity:1}
+/* always show on touch devices */
+@media(hover:none){.section-card .edit-btn{opacity:1}}
+
+/* ---- DRAG HANDLE ---- */
+.drag-handle{
+  color:var(--text-muted);flex-shrink:0;
+  padding:0 10px 0 0;cursor:grab;
+  display:flex;align-items:center;
+}
+.drag-handle:active{cursor:grabbing}
+
+/* ---- ADD ITEM BTN (DO NOT MODIFY) ---- */
+.add-item-btn{
+  display:flex;align-items:center;gap:8px;
+  margin-top:12px;padding:14px;width:100%;
+  background:none;border:1px dashed var(--border-strong);
+  border-radius:var(--radius-sm);
+  font-family:'DM Sans',sans-serif;font-size:14px;font-weight:500;
+  color:var(--text-muted);cursor:pointer;
+  transition:all .15s;justify-content:center;
+}
+.add-item-btn:active{color:var(--accent2);border-color:var(--accent2)}
+
+/* ---- DETAIL ---- */
+.detail-wrap{padding:0}
+.detail-header{display:flex;align-items:center;gap:12px;padding:20px 20px 0}
+.detail-photo-wrap{
+  margin:14px 20px 0;border-radius:var(--radius);
+  overflow:hidden;border:1px solid var(--border);
+  background:var(--surface2);box-shadow:var(--shadow);
+}
+.detail-photo{width:100%;height:auto;max-height:400px;object-fit:contain;display:block;background:var(--surface2)}
+.detail-body{padding:16px 20px 40px}
+.detail-name{font-family:'Syne',sans-serif;font-size:20px;font-weight:700;letter-spacing:-.3px;line-height:1.25;margin-bottom:18px}
+.ing-section-label,.desc-section-label{font-size:11px;font-weight:500;letter-spacing:.8px;text-transform:uppercase;color:var(--text-muted);margin-bottom:10px}
+.desc-section-label{margin-top:4px}
+.ing-table{width:100%;border-collapse:collapse;margin-bottom:16px}
+.ing-table tr{border-bottom:1px solid var(--border)}
+.ing-table tr:last-child{border-bottom:none}
+.ing-table td{padding:8px 0;font-size:14px;line-height:1.3}
+.ing-table td:first-child{padding-right:12px}
+.ing-table td:last-child{color:var(--accent2);font-weight:500;text-align:right;white-space:nowrap}
+.ing-yield td{padding-top:10px;border-top:2px solid var(--border-strong)!important;border-bottom:none!important}
+.ing-yield td:first-child{font-weight:600;font-family:'Syne',sans-serif;font-size:13px}
+.ing-yield td:last-child{font-weight:700;font-size:14px}
+.desc-text{font-size:14px;color:var(--text-secondary);line-height:1.7;background:var(--surface);border-radius:var(--radius-sm);padding:14px;border:1px solid var(--border)}
+
+/* ---- ADMIN SHEET ---- */
+.admin-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:1000;align-items:flex-end;justify-content:center}
+.admin-overlay.open{display:flex}
+.admin-sheet{
+  background:var(--surface);border-radius:20px 20px 0 0;
+  padding:24px 20px 48px;width:100%;max-width:430px;
+  max-height:90vh;overflow-y:auto;
+  -webkit-overflow-scrolling:touch;
+  animation:slideUp .25s ease;
+}
+@keyframes slideUp{from{transform:translateY(100%)}to{transform:translateY(0)}}
+.admin-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px}
+.admin-title{font-family:'Syne',sans-serif;font-size:18px;font-weight:700}
+.admin-close{background:var(--surface2);border:none;border-radius:50%;width:32px;height:32px;font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center;color:var(--text-secondary)}
+.admin-tabs{display:flex;gap:8px;margin-bottom:18px}
+.admin-tab{flex:1;padding:9px;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--surface2);font-family:'DM Sans',sans-serif;font-size:13px;font-weight:500;cursor:pointer;text-align:center;color:var(--text-secondary);transition:all .15s}
+.admin-tab.active{background:var(--accent2);color:#fff;border-color:var(--accent2)}
+.admin-field{margin-bottom:14px}
+.admin-field label{display:block;font-size:11px;font-weight:500;letter-spacing:.7px;text-transform:uppercase;color:var(--text-muted);margin-bottom:6px}
+.admin-field input,.admin-field select,.admin-field textarea{
+  width:100%;background:var(--bg);border:1px solid var(--border);
+  border-radius:var(--radius-sm);padding:10px 12px;
+  font-family:'DM Sans',sans-serif;font-size:14px;color:var(--text-primary);
+  outline:none;transition:border-color .2s;
+  user-select:text;-webkit-user-select:text;
+}
+.admin-field input:focus,.admin-field select:focus,.admin-field textarea:focus{border-color:var(--accent2)}
+.admin-field textarea{min-height:80px;resize:vertical}
+.ing-row-admin{display:flex;gap:8px;margin-bottom:8px;align-items:center}
+.ing-row-admin input{flex:1;user-select:text;-webkit-user-select:text}
+.ing-row-admin input.weight{flex:0 0 90px}
+.ing-rm{background:none;border:none;cursor:pointer;color:var(--text-muted);font-size:20px;line-height:1;padding:0 2px}
+.ing-rm:active{color:#e24b4a}
+.add-ing-row{width:100%;background:none;border:1px dashed var(--border-strong);border-radius:var(--radius-sm);padding:8px;font-size:13px;color:var(--text-muted);cursor:pointer;margin-top:4px;transition:all .15s;font-family:inherit}
+.add-ing-row:active{color:var(--accent2);border-color:var(--accent2)}
+.admin-btn-row{display:flex;gap:10px;margin-top:20px}
+.admin-btn{flex:1;padding:13px;border:none;border-radius:var(--radius-sm);font-family:'DM Sans',sans-serif;font-size:15px;font-weight:500;cursor:pointer}
+.admin-btn.save{background:var(--accent2);color:#fff}
+.admin-btn.cancel{background:var(--surface2);color:var(--text-primary)}
+.admin-btn.delete{background:#fff0f0;color:#e24b4a;border:1px solid #f0c0c0}
+.admin-del-row{display:flex;margin-top:10px}
+
+/* ---- PHOTO ---- */
+#photo-preview{width:100%;height:160px;border-radius:var(--radius-sm);background-size:contain;background-repeat:no-repeat;background-position:center;background-color:var(--surface2);border:1px solid var(--border);margin-bottom:10px;display:none}
+.photo-actions{display:flex;gap:8px;margin-bottom:4px}
+.photo-btn{flex:1;padding:9px;background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm);font-family:'DM Sans',sans-serif;font-size:13px;font-weight:500;color:var(--text-primary);cursor:pointer;text-align:center;transition:all .15s;display:block}
+.photo-btn:active{border-color:var(--accent2);color:var(--accent2)}
+
+/* ---- CROP ---- */
+.crop-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:2000;flex-direction:column;align-items:center;justify-content:center;padding:20px}
+.crop-overlay.open{display:flex}
+.crop-canvas-wrap{border-radius:var(--radius);overflow:hidden;touch-action:none;box-shadow:0 8px 40px rgba(0,0,0,.4)}
+#crop-canvas{display:block;cursor:grab}
+#crop-canvas:active{cursor:grabbing}
+.crop-controls{display:flex;gap:10px;margin-top:16px;align-items:center}
+.crop-btn{padding:10px 18px;border:none;border-radius:var(--radius-sm);font-family:'DM Sans',sans-serif;font-size:14px;font-weight:500;cursor:pointer}
+.crop-btn.apply{background:var(--accent2);color:#fff}
+.crop-btn.cancel{background:rgba(255,255,255,.15);color:#fff}
+.crop-zoom-btn{width:40px;height:40px;border-radius:50%;background:rgba(255,255,255,.15);color:#fff;border:none;font-size:22px;cursor:pointer;display:flex;align-items:center;justify-content:center}
+.crop-hint{color:rgba(255,255,255,.5);font-size:12px;text-align:center;margin-top:8px}
+
+/* ---- SECTION EDITOR items ---- */
+.se-item{
+  display:flex;align-items:center;gap:10px;
+  background:var(--surface2);border-radius:var(--radius-sm);
+  padding:10px 12px;margin-bottom:8px;
+  border:1px solid var(--border);cursor:grab;
+}
+.se-item.sortable-ghost{opacity:.3}
+.se-item-name{
+  flex:1;background:transparent;border:none;
+  font-family:'DM Sans',sans-serif;font-size:15px;font-weight:500;
+  color:var(--text-primary);outline:none;padding:0;
+  user-select:text;-webkit-user-select:text;
+}
+.se-item-name:focus{border-bottom:1px solid var(--accent2)}
+.se-del-btn{background:none;border:none;cursor:pointer;color:var(--text-muted);font-size:20px;line-height:1;padding:0 2px}
+.se-del-btn:active{color:#e24b4a}
+
+/* ---- iOS SAFARI CLICK FIX ---- */
+/* iOS Safari only fires click on elements with cursor:pointer or role=button */
+.zone-card,
+.section-card,
+.item-row,
+.back-btn,
+.add-item-btn,
+.edit-btn,
+.admin-btn,
+.admin-tab,
+.admin-close,
+.se-del-btn,
+.ing-rm,
+.theme-btn,
+.photo-btn,
+.crop-btn,
+.crop-zoom-btn,
+.add-ing-row {
+  cursor: pointer;
+}
+
+/* Dark mode — cover entire screen including safe areas */
+body.dark { background:#141414; }
+html:has(body.dark) { background:#141414; }
+
+/* ============================================================
+   UNIFIED BUTTON SYSTEM
+   ============================================================ */
+
+/* Shared base for all interactive buttons */
+.admin-btn, .add-item-btn, .add-ing-row,
+.photo-btn, .crop-btn, .admin-tab, .admin-close {
+  font-family: 'DM Sans', sans-serif;
+  font-weight: 500;
+  transition: opacity .15s, transform .12s;
+  -webkit-tap-highlight-color: transparent;
+  cursor: pointer;
+}
+
+/* Active feedback */
+.admin-btn:active, .photo-btn:active,
+.crop-btn:active, .admin-tab:active {
+  opacity: .82;
+  transform: scale(.97);
+}
+
+/* Primary — orange */
+.admin-btn.save {
+  background: var(--accent2);
+  color: #fff;
+  border: none;
+  box-shadow: 0 2px 8px rgba(192,79,20,.22);
+}
+.admin-btn.save:active { box-shadow: none; }
+
+/* Secondary — neutral */
+.admin-btn.cancel {
+  background: var(--surface2);
+  color: var(--text-primary);
+  border: 1px solid var(--border);
+}
+
+/* Danger — red */
+.admin-btn.delete {
+  background: #fff0f0;
+  color: #e24b4a;
+  border: 1px solid #f0c0c0;
+}
+.admin-btn.delete:active { background: #ffe0e0; }
+
+/* Admin tab active */
+.admin-tab.active {
+  background: var(--accent2);
+  color: #fff;
+  border-color: var(--accent2);
+}
+
+/* Dashed add buttons */
+.add-ing-row:active, .add-item-btn:active {
+  color: var(--accent2);
+  border-color: var(--accent2);
+  background: rgba(192,79,20,.04);
+}
+
+/* Crop */
+.crop-btn.apply {
+  background: var(--accent2);
+  color: #fff;
+  box-shadow: 0 2px 8px rgba(192,79,20,.22);
+}
+.crop-btn.cancel { background: rgba(255,255,255,.15); color: #fff; }
+.crop-zoom-btn:active { background: rgba(255,255,255,.28); }
+
+/* Cutting */
+#cutting-save-btn {
+  background: var(--accent2);
+  color: #fff;
+  border: none;
+  box-shadow: 0 2px 8px rgba(192,79,20,.22);
+}
+
+/* Dark mode */
+body.dark .admin-btn.delete {
+  background: rgba(226,75,74,.12);
+  border-color: rgba(226,75,74,.3);
+}
+
+/* ============================================================
+   BUTTON OVERRIDES — high specificity, end of file
+   ============================================================ */
+button.admin-btn.save {
+  background: var(--accent2) !important;
+  color: #fff !important;
+  border: none !important;
+  box-shadow: 0 2px 8px rgba(192,79,20,.25) !important;
+}
+button.admin-btn.save:active { opacity: .85 !important; transform: scale(.97) !important; }
+
+button.admin-btn.cancel {
+  background: var(--surface2) !important;
+  color: var(--text-primary) !important;
+  border: 1px solid var(--border) !important;
+}
+button.admin-btn.cancel:active { opacity: .85 !important; transform: scale(.97) !important; }
+
+button.admin-btn.delete {
+  background: #fff0f0 !important;
+  color: #e24b4a !important;
+  border: 1px solid #f0c0c0 !important;
+}
+button.admin-btn.delete:active { background: #ffe0e0 !important; }
+
+button.admin-tab { transition: all .15s; }
+button.admin-tab.active {
+  background: var(--accent2) !important;
+  color: #fff !important;
+  border-color: var(--accent2) !important;
+}
+
+button.admin-btn,
+button.admin-tab,
+button.admin-close,
+button.add-item-btn,
+button.add-ing-row,
+button.photo-btn,
+button.crop-btn,
+button.crop-zoom-btn {
+  transition: opacity .15s, transform .12s !important;
+  cursor: pointer !important;
+}
+
+body.dark button.admin-btn.delete {
+  background: rgba(226,75,74,.15) !important;
+  border-color: rgba(226,75,74,.35) !important;
+}
+
+/* ============================================================
+   UNIFIED SERVICE BUTTONS — match .back-btn style
+   ============================================================ */
+
+/* ✏️ Цеха и ⚙ Разделы — header action buttons */
+#edit-zones-btn,
+#manage-sections-btn,
+#cutting-edit-products-btn,
+#cutting-export-btn {
+  background: var(--surface) !important;
+  border: 1px solid var(--border) !important;
+  border-radius: var(--radius-sm) !important;
+  box-shadow: var(--shadow) !important;
+  color: var(--text-secondary) !important;
+  font-size: 13px !important;
+  font-weight: 500 !important;
+  padding: 7px 12px !important;
+  cursor: pointer !important;
+  font-family: 'DM Sans', sans-serif !important;
+  transition: box-shadow .15s, opacity .15s !important;
+}
+#edit-zones-btn:active,
+#manage-sections-btn:active,
+#cutting-edit-products-btn:active,
+#cutting-export-btn:active {
+  opacity: .75 !important;
+  box-shadow: none !important;
+}
+
+/* 🌙/☀️ Theme button — same circle as back-btn */
+.theme-btn {
+  background: var(--surface) !important;
+  border: 1px solid var(--border) !important;
+  box-shadow: var(--shadow) !important;
+  width: 44px !important;
+  height: 44px !important;
+  border-radius: 50% !important;
+  font-size: 20px !important;
+}
+.theme-btn:active {
+  opacity: .75 !important;
+  transform: scale(.93) !important;
+}
+
+/* + Добавить — dashed outline → solid subtle */
+.add-item-btn {
+  background: var(--surface) !important;
+  border: 1px solid var(--border) !important;
+  border-radius: var(--radius-sm) !important;
+  box-shadow: var(--shadow) !important;
+  color: var(--text-secondary) !important;
+  font-size: 14px !important;
+  font-weight: 500 !important;
+}
+.add-item-btn:active {
+  color: var(--accent2) !important;
+  border-color: var(--accent2) !important;
+  box-shadow: none !important;
+}
+
+/* Paste button */
+#paste-btn {
+  background: var(--accent2) !important;
+  border: none !important;
+  border-radius: var(--radius-sm) !important;
+  box-shadow: 0 2px 8px rgba(192,79,20,.22) !important;
+}
+
+/* ---- Цеха button — right side, matches back-btn style ---- */
+#edit-zones-btn {
+  display: none; /* shown via JS */
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  box-shadow: var(--shadow);
+  color: var(--text-secondary);
+  font-size: 13px;
+  font-weight: 500;
+  padding: 7px 12px;
+  cursor: pointer;
+  font-family: 'DM Sans', sans-serif;
+  transition: opacity .15s;
+  margin-left: auto; /* push to right */
+}
+#edit-zones-btn:active { opacity: .75; }
+
+/* ---- Новая запись button — full width orange ---- */
+.cutting-new-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin-top: 12px;
+  padding: 14px;
+  width: 100%;
+  background: var(--accent2);
+  color: #fff;
+  border: none;
+  border-radius: var(--radius-sm);
+  font-family: 'DM Sans', sans-serif;
+  font-size: 15px;
+  font-weight: 500;
+  cursor: pointer;
+  box-shadow: 0 2px 10px rgba(192,79,20,.25);
+  transition: opacity .15s, transform .12s;
+}
+.cutting-new-btn:active {
+  opacity: .85;
+  transform: scale(.98);
+  box-shadow: none;
+}
+
+/* ---- Gear icon buttons — круглые как back-btn ---- */
+#edit-zones-btn,
+#manage-sections-btn {
+  width: 36px !important;
+  height: 36px !important;
+  border-radius: 50% !important;
+  padding: 0 !important;
+  display: none; /* shown via JS */
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+/* JS sets display:block — override to flex for centering */
+#edit-zones-btn[style*="block"],
+#manage-sections-btn[style*="block"] {
+  display: flex !important;
+}
+
+/* ---- G2 gear buttons — identical to .back-btn ---- */
+#edit-zones-btn,
+#manage-sections-btn {
+  width: 36px !important;
+  height: 36px !important;
+  border-radius: 50% !important;
+  padding: 0 !important;
+  background: var(--surface) !important;
+  border: 1px solid var(--border) !important;
+  box-shadow: var(--shadow) !important;
+  display: none;
+  align-items: center !important;
+  justify-content: center !important;
+  flex-shrink: 0;
+  color: var(--text-muted) !important;
+  transition: opacity .15s !important;
+}
+#edit-zones-btn[style*="block"],
+#manage-sections-btn[style*="block"] {
+  display: flex !important;
+}
+#edit-zones-btn:active,
+#manage-sections-btn:active {
+  opacity: .7 !important;
+  box-shadow: none !important;
+}
+
+/* ---- Cutting gear button — same as back-btn ---- */
+#cutting-edit-products-btn {
+  width: 36px !important;
+  height: 36px !important;
+  border-radius: 50% !important;
+  padding: 0 !important;
+  background: var(--surface) !important;
+  border: 1px solid var(--border) !important;
+  box-shadow: var(--shadow) !important;
+  display: none;
+  align-items: center !important;
+  justify-content: center !important;
+  color: var(--text-muted) !important;
+  transition: opacity .15s !important;
+  flex-shrink: 0;
+}
+#cutting-edit-products-btn[style*="block"] {
+  display: flex !important;
+}
+#cutting-edit-products-btn:active { opacity: .7 !important; box-shadow: none !important; }
