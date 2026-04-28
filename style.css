@@ -115,11 +115,36 @@ body.dark .theme-btn::after{ transform:translateX(18px); }
   position:sticky;top:0;z-index:100;
   border-bottom:1px solid var(--border);
 }
+.header-top{
+  display:flex;align-items:center;justify-content:space-between;
+  margin-bottom:14px;
+}
 .brand{
   font-family:'Syne',sans-serif;font-size:22px;font-weight:700;
-  letter-spacing:-.5px;text-align:center;margin-bottom:14px;cursor:default;
+  letter-spacing:-.5px;text-align:center;cursor:default;
+  flex:1;margin-bottom:0;
 }
 .brand em{color:var(--accent2);font-style:normal}
+
+/* Буква i с индикатором вместо точки */
+.brand-i-wrap{
+  position:relative;display:inline-block;
+}
+.net-dot{
+  position:absolute;
+  width:4px;height:4px;border-radius:50%;
+  left:50%;transform:translateX(-50%);
+  top:4px;
+  background:#639922;
+  pointer-events:none;
+  animation:net-blink .8s infinite;
+}
+.net-dot.offline { background:#e24b4a; }
+.net-dot.syncing { background:#e8a020; }
+@keyframes net-blink{0%,100%{opacity:1}50%{opacity:.15}}
+
+/* Точка над i в Kitchen — восстанавливаем */
+.brand em { font-feature-settings: normal; }
 .search-wrap{position:relative}
 .search-icon{
   position:absolute;left:14px;top:50%;transform:translateY(-50%);
@@ -630,32 +655,5 @@ body.dark button.admin-btn.delete {
   display: flex !important;
 }
 
-/* ============================================================
-   ЭТАП 6 — Индикатор сети + Этап 5 — toggle в шапке
-   ============================================================ */
 
-/* Шапка главного экрана с toggle */
-.header-top {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 14px;
-}
-.brand-wrap {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
 
-/* Точка статуса сети */
-.net-dot {
-  width: 7px;
-  height: 7px;
-  border-radius: 50%;
-  background: #639922;
-  flex-shrink: 0;
-  transition: background .3s;
-}
-.net-dot.offline  { background: #e24b4a; }
-.net-dot.syncing  { background: #e8a020; animation: net-blink .8s infinite; }
-@keyframes net-blink { 0%,100%{opacity:1} 50%{opacity:.25} }
