@@ -25,6 +25,12 @@
 </div>
 <style>@keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}</style>
 
+<div id="update-banner" style="display:none;position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#1A1A1A;color:#fff;border-radius:20px;padding:10px 16px;font-size:13px;font-weight:500;z-index:700;white-space:nowrap;align-items:center;gap:10px;box-shadow:0 4px 20px rgba(0,0,0,.3);">
+  Доступно обновление
+  <button onclick="applyUpdate()" style="background:#C04F14;border:none;color:#fff;border-radius:12px;padding:5px 12px;font-size:12px;font-weight:500;cursor:pointer;font-family:inherit;">Обновить</button>
+  <button onclick="document.getElementById('update-banner').style.display='none'" style="background:none;border:none;color:#ABA59E;font-size:16px;cursor:pointer;padding:0;line-height:1;">×</button>
+</div>
+
 <div id="clipboard-toast" style="display:none;position:fixed;bottom:80px;left:50%;transform:translateX(-50%);background:#1A1A1A;color:#fff;border-radius:20px;padding:8px 18px;font-size:13px;font-weight:500;z-index:600;white-space:nowrap;align-items:center;gap:10px;">
   <span id="clipboard-toast-text"></span>
   <button onclick="clearClipboard()" style="background:none;border:none;color:#ABA59E;font-size:16px;cursor:pointer;padding:0 0 0 4px;line-height:1">×</button>
@@ -340,8 +346,28 @@
 <script src="loader.js"></script>
 <script src="app.js"></script>
 <script>
+var _swReg = null;
 if ('serviceWorker' in navigator) {
-  navigator.serviceWorker.register('sw.js').catch(function(){});
+  navigator.serviceWorker.register('sw.js').then(function(reg) {
+    _swReg = reg;
+    reg.addEventListener('updatefound', function() {
+      var newWorker = reg.installing;
+      newWorker.addEventListener('statechange', function() {
+        if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+          var banner = document.getElementById('update-banner');
+          if (banner) banner.style.display = 'flex';
+        }
+      });
+    });
+  }).catch(function(){});
+  navigator.serviceWorker.addEventListener('controllerchange', function() {
+    window.location.reload();
+  });
+}
+function applyUpdate() {
+  if (_swReg && _swReg.waiting) {
+    _swReg.waiting.postMessage({ type: 'SKIP_WAITING' });
+  }
 }
 </script>
 </body>

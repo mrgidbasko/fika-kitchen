@@ -1,4 +1,4 @@
-var CACHE = 'fika-v5';
+var CACHE = 'fika-v7';
 var FILES = [
   '/',
   '/index.html',
@@ -6,13 +6,15 @@ var FILES = [
   '/app.js',
   '/data.js',
   '/offline-queue.js',
-  'https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700&family=DM+Sans:wght@300;400;500&display=swap'
+  '/cutting.js',
+  '/loader.js',
+  '/config.js'
 ];
 
 self.addEventListener('install', function(e) {
   e.waitUntil(
     caches.open(CACHE).then(function(cache) {
-      return cache.addAll(FILES.filter(function(f){ return !f.startsWith('http'); }));
+      return cache.addAll(FILES);
     }).then(function(){ return self.skipWaiting(); })
   );
 });
@@ -23,6 +25,10 @@ self.addEventListener('activate', function(e) {
       return Promise.all(keys.filter(function(k){ return k !== CACHE; }).map(function(k){ return caches.delete(k); }));
     }).then(function(){ return self.clients.claim(); })
   );
+});
+
+self.addEventListener('message', function(e) {
+  if (e.data && e.data.type === 'SKIP_WAITING') self.skipWaiting();
 });
 
 self.addEventListener('fetch', function(e) {
