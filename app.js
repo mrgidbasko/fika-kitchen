@@ -588,8 +588,9 @@ function renderZonesGrid() {
     if (zone === '__dishes__') {
       // Блюда card - inserted at this position
       var dishMeta2 = (window.ZONE_META && window.ZONE_META['__dishes__']) || {};
-      var dishBg2   = dishMeta2.bgColor || '#C04F14';
-      var dishClr2  = dishMeta2.color   || '#fff';
+      var isDark2 = document.body.classList.contains('dark');
+      var dishBg2   = (isDark2 && dishMeta2.bgColorDark) ? dishMeta2.bgColorDark : (dishMeta2.bgColor || '#C04F14');
+      var dishClr2  = (isDark2 && dishMeta2.colorDark)   ? dishMeta2.colorDark   : (dishMeta2.color   || '#fff');
       var dishFs2   = dishMeta2.fontSize ? 'font-size:'+dishMeta2.fontSize+'px;' : '';
       var dc = document.createElement('div');
       dc.className = 'zone-card';
@@ -609,8 +610,9 @@ function renderZonesGrid() {
     if (zone === '__cutting__') {
       // Разделка card
       var cutMeta2 = (window.ZONE_META && window.ZONE_META['__cutting__']) || {};
-      var cutBg2   = cutMeta2.bgColor || '#2D3142';
-      var cutClr2  = cutMeta2.color   || '#fff';
+      var isDark3 = document.body.classList.contains('dark');
+      var cutBg2   = (isDark3 && cutMeta2.bgColorDark) ? cutMeta2.bgColorDark : (cutMeta2.bgColor || '#2D3142');
+      var cutClr2  = (isDark3 && cutMeta2.colorDark)   ? cutMeta2.colorDark   : (cutMeta2.color   || '#fff');
       var cutFs2   = cutMeta2.fontSize ? 'font-size:'+cutMeta2.fontSize+'px;' : '';
       var cc = document.createElement('div');
       cc.className = 'zone-card';
@@ -629,10 +631,13 @@ function renderZonesGrid() {
     }
     (function(z){
       var meta = (window.ZONE_META && window.ZONE_META[z]) || {};
+      var isDark4 = document.body.classList.contains('dark');
       var card = document.createElement('div');
       card.className = 'zone-card';
-      if (meta.bgColor) { card.style.background=meta.bgColor; card.style.borderColor=meta.bgColor; }
-      var lblStyle = (meta.color?'color:'+meta.color+';':'') + (meta.fontSize?'font-size:'+meta.fontSize+'px;':'');
+      var bg = (isDark4 && meta.bgColorDark) ? meta.bgColorDark : meta.bgColor;
+      var clr = (isDark4 && meta.colorDark) ? meta.colorDark : meta.color;
+      if (bg) { card.style.background=bg; card.style.borderColor=bg; }
+      var lblStyle = (clr?'color:'+clr+';':'') + (meta.fontSize?'font-size:'+meta.fontSize+'px;':'');
       card.innerHTML = '<div class="zone-label" style="'+lblStyle+'">' + z + '</div>';
       if (adminUnlocked) {
         var zeb = document.createElement('button');
@@ -657,19 +662,31 @@ function openZoneStyleEditor(zone, meta) {
   var pop = document.createElement('div');
   pop.className = 'se-style-popover';
   pop.style.cssText = 'position:fixed;bottom:0;left:0;right:0;max-width:430px;margin:0 auto;z-index:1500;border-radius:20px 20px 0 0;padding:24px 20px 48px;background:var(--surface);animation:slideUp .25s ease;max-height:80vh;overflow-y:auto;box-shadow:0 -8px 32px rgba(0,0,0,.15);';
-  var curBg=meta.bgColor||'#ffffff', curClr=meta.color||'#1A1A1A', curFs=meta.fontSize||17;
+  var curBg=meta.bgColor||'#ffffff', curBgDark=meta.bgColorDark||'#1E1E1E';
+  var curClr=meta.color||'#1A1A1A', curClrDark=meta.colorDark||'#F0EDE8';
+  var curFs=meta.fontSize||17;
   pop.innerHTML = '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">'
     +'<div style="font-family:Syne,sans-serif;font-size:17px;font-weight:700;color:var(--text-primary);">Стиль: '+zone+'</div>'
     +'<button style="background:var(--surface2);border:none;border-radius:50%;width:32px;height:32px;font-size:18px;cursor:pointer;" onclick="this.closest(\'.se-style-popover\').remove()">&times;</button>'
     +'</div>'
-    +'<div class="admin-field"><label>Фон кнопки</label><input type="color" id="ze-bg" value="'+curBg+'" style="width:100%;height:44px;border:1px solid var(--border);border-radius:var(--radius-sm);cursor:pointer;padding:2px 4px;"></div>'
-    +'<div class="admin-field"><label>Цвет текста</label><input type="color" id="ze-clr" value="'+curClr+'" style="width:100%;height:44px;border:1px solid var(--border);border-radius:var(--radius-sm);cursor:pointer;padding:2px 4px;"></div>'
+    +'<div style="font-size:12px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px;">Светлая тема</div>'
+    +'<div class="admin-field"><label>Фон</label><input type="color" id="ze-bg" value="'+curBg+'" style="width:100%;height:44px;border:1px solid var(--border);border-radius:var(--radius-sm);cursor:pointer;padding:2px 4px;"></div>'
+    +'<div class="admin-field"><label>Текст</label><input type="color" id="ze-clr" value="'+curClr+'" style="width:100%;height:44px;border:1px solid var(--border);border-radius:var(--radius-sm);cursor:pointer;padding:2px 4px;"></div>'
+    +'<div style="font-size:12px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:.5px;margin:12px 0 8px;">Тёмная тема</div>'
+    +'<div class="admin-field"><label>Фон</label><input type="color" id="ze-bg-dark" value="'+curBgDark+'" style="width:100%;height:44px;border:1px solid var(--border);border-radius:var(--radius-sm);cursor:pointer;padding:2px 4px;"></div>'
+    +'<div class="admin-field"><label>Текст</label><input type="color" id="ze-clr-dark" value="'+curClrDark+'" style="width:100%;height:44px;border:1px solid var(--border);border-radius:var(--radius-sm);cursor:pointer;padding:2px 4px;"></div>'
     +'<div class="admin-field"><label>Размер шрифта — <span id="ze-fs-val">'+curFs+'</span>px</label><input type="range" min="12" max="28" value="'+curFs+'" style="width:100%;" oninput="document.getElementById(\'ze-fs-val\').textContent=this.value"></div>'
     +'<div class="admin-btn-row"><button class="admin-btn cancel" onclick="this.closest(\'.se-style-popover\').remove()">Отмена</button><button class="admin-btn save" id="ze-save">Применить</button></div>';
   document.body.appendChild(pop);
   pop.querySelector('#ze-save').addEventListener('click', function(){
     if (!window.ZONE_META) window.ZONE_META = {};
-    window.ZONE_META[zone] = { bgColor:pop.querySelector('#ze-bg').value, color:pop.querySelector('#ze-clr').value, fontSize:parseInt(pop.querySelector('[type=range]').value) };
+    window.ZONE_META[zone] = {
+      bgColor: pop.querySelector('#ze-bg').value,
+      bgColorDark: pop.querySelector('#ze-bg-dark').value,
+      color: pop.querySelector('#ze-clr').value,
+      colorDark: pop.querySelector('#ze-clr-dark').value,
+      fontSize: parseInt(pop.querySelector('[type=range]').value)
+    };
     pop.remove(); saveToFirebase().then(function(){ renderZonesGrid(); });
   });
 }
@@ -707,10 +724,20 @@ function renderZeList() {
     inp.value = isFixed ? fixedLabels[zone] : zone;
     if (isFixed) { inp.disabled=true; inp.style.color='var(--text-muted)'; }
     item.appendChild(inp);
-    (function(z,idx){
+    (function(z){
       if (!isFixed) {
-        var del=document.createElement('button'); del.className='se-del-btn no-drag'; del.textContent='×';
-        del.onclick=function(){ var cnt=PF[z]?PF[z].length:0; if(cnt>0&&!confirm('В цехе "'+z+'" есть '+cnt+' п/ф. Удалить?')) return; _zeWorkingZones.splice(idx,1); renderZeList(); };
+        var del=document.createElement('button');
+        del.className='se-del-btn no-drag';
+        del.textContent='×';
+        del.style.cssText='min-width:44px;min-height:44px;font-size:20px;display:flex;align-items:center;justify-content:center;';
+        del.addEventListener('click', function(e){
+          e.stopPropagation();
+          var cnt=PF[z]?PF[z].length:0;
+          if(cnt>0&&!confirm('В цехе "'+z+'" есть '+cnt+' п/ф. Удалить?')) return;
+          var idx2=_zeWorkingZones.indexOf(z);
+          if(idx2!==-1) _zeWorkingZones.splice(idx2,1);
+          renderZeList();
+        });
         item.appendChild(del);
       } else {
         // Lock icon instead of delete
@@ -719,7 +746,7 @@ function renderZeList() {
         lock.textContent='🔒';
         item.appendChild(lock);
       }
-    })(zone,i);
+    })(zone);
     list.appendChild(item);
   });
   if(_zeSortable) _zeSortable.destroy();
@@ -1028,7 +1055,7 @@ function applyTheme(theme){
   var meta=document.getElementById('theme-color-meta'); if(meta) meta.setAttribute('content',theme==='dark'?'#141414':'#F7F4EF');
   document.documentElement.style.background=theme==='dark'?'#141414':'#F7F4EF';
 }
-function toggleTheme(){ applyTheme(document.body.classList.contains('dark')?'light':'dark'); }
+function toggleTheme(){ applyTheme(document.body.classList.contains('dark')?'light':'dark'); renderZonesGrid(); }
 
 // ============================================================
 // GLOBAL EVENT DELEGATION — single handler for all clicks
