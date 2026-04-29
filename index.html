@@ -360,13 +360,11 @@ if ('serviceWorker' in navigator) {
       });
     });
   }).catch(function(){});
-  navigator.serviceWorker.addEventListener('controllerchange', function() {
-    window.location.reload();
-  });
 }
 function applyUpdate() {
   if (_swReg && _swReg.waiting) {
     _swReg.waiting.postMessage({ type: 'SKIP_WAITING' });
+    window.location.reload();
   }
 }
 </script>
