@@ -732,9 +732,21 @@ function renderZeList() {
         del.style.cssText='min-width:44px;min-height:44px;font-size:20px;display:flex;align-items:center;justify-content:center;';
         del.addEventListener('click', function(e){
           e.stopPropagation();
-          var cnt=PF[z]?PF[z].length:0;
-          if(cnt>0&&!confirm('В цехе "'+z+'" есть '+cnt+' п/ф. Удалить?')) return;
-          var idx2=_zeWorkingZones.indexOf(z);
+          e.preventDefault();
+          var zoneName = item.dataset.zone;
+          var cnt = PF[zoneName] ? PF[zoneName].length : 0;
+          if(cnt>0&&!confirm('В цехе "'+zoneName+'" есть '+cnt+' п/ф. Удалить?')) return;
+          var idx2 = _zeWorkingZones.indexOf(zoneName);
+          if(idx2!==-1) _zeWorkingZones.splice(idx2,1);
+          renderZeList();
+        });
+        del.addEventListener('touchend', function(e){
+          e.stopPropagation();
+          e.preventDefault();
+          var zoneName = item.dataset.zone;
+          var cnt = PF[zoneName] ? PF[zoneName].length : 0;
+          if(cnt>0&&!confirm('В цехе "'+zoneName+'" есть '+cnt+' п/ф. Удалить?')) return;
+          var idx2 = _zeWorkingZones.indexOf(zoneName);
           if(idx2!==-1) _zeWorkingZones.splice(idx2,1);
           renderZeList();
         });
