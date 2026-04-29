@@ -1,4 +1,4 @@
-var CACHE = 'fika-v6';
+var CACHE = 'fika-v7';
 var FILES = [
   '/',
   '/index.html',
