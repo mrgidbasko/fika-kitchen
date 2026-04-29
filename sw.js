@@ -7,6 +7,7 @@ var FILES = [
   '/data.js',
   '/offline-queue.js',
   '/cutting.js',
+  '/writeoff.js',
   '/loader.js',
   '/config.js'
 ];
