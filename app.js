@@ -723,9 +723,12 @@ function saveZonesEditor() {
 
   items.forEach(function(el) {
     var orig = el.dataset.zone;
-    // Fixed cards — record position only
+    // Fixed cards — record position only, but preserve their meta
     if (orig === '__dishes__' || orig === '__cutting__') {
       fullOrder.push(orig);
+      if (window.ZONE_META && window.ZONE_META[orig]) {
+        newZM[orig] = window.ZONE_META[orig];
+      }
       return;
     }
     var inp = el.querySelector('.se-item-name');
@@ -1013,12 +1016,29 @@ function toggleTheme(){ applyTheme(document.body.classList.contains('dark')?'lig
 // GLOBAL EVENT DELEGATION — single handler for all clicks
 // ============================================================
 function initGlobalEvents() {
-  var _lastHandled = 0; // debounce touchend+click double-fire
+  var _lastHandled = 0;
+  var _touchStartX = 0, _touchStartY = 0;
+
+  document.addEventListener('touchstart', function(e) {
+    if (e.touches.length === 1) {
+      _touchStartX = e.touches[0].clientX;
+      _touchStartY = e.touches[0].clientY;
+    }
+  }, {passive: true});
 
   function handle(e) {
     var now = Date.now();
     if (e.type === 'click' && now - _lastHandled < 400) return;
-    if (e.type === 'touchend') _lastHandled = now;
+    if (e.type === 'touchend') {
+      // Если палец сдвинулся больше 10px — это скролл, игнорируем
+      var touch = e.changedTouches && e.changedTouches[0];
+      if (touch) {
+        var dx = Math.abs(touch.clientX - _touchStartX);
+        var dy = Math.abs(touch.clientY - _touchStartY);
+        if (dx > 10 || dy > 10) return;
+      }
+      _lastHandled = now;
+    }
 
     // SVG child elements don't have .closest — walk up to real Element
     var target = e.target;
