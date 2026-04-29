@@ -527,7 +527,7 @@ function renderZonesGrid() {
   grid.innerHTML = '';
   if (!PF || typeof PF !== 'object') PF = {};
   var ezb = document.getElementById('edit-zones-btn');
-  if (ezb) ezb.style.display = adminUnlocked ? 'block' : 'none';
+  if (ezb) ezb.style.display = adminUnlocked ? 'flex' : 'none';
   // Sort zones by saved order if available
   var zoneKeys = Object.keys(PF);
   // Build full order including fixed cards
