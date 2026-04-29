@@ -185,10 +185,15 @@ function loadCutting() {
 // ============================================================
 function openCutting() {
   cuttingViewProduct = null;
-  // Always reset filter to today on open
   var today = todayStr();
   cuttingFilterFrom = today;
   cuttingFilterTo   = today;
+  // Инициализируем range input
+  var rangeInp = document.getElementById('cutting-filter-range');
+  if (rangeInp) rangeInp.value = _cuttingISOToDisplay(today);
+  // Показываем фиксированную кнопку
+  var addBtn = document.getElementById('cutting-add-btn-wrap');
+  if (addBtn) addBtn.style.display = 'block';
   goTo('cutting');
   loadCutting();
 }
@@ -205,10 +210,19 @@ function getFilteredRecords(allRecords) {
 }
 
 function applyFilter() {
-  var from = document.getElementById('cutting-filter-from');
-  var to   = document.getElementById('cutting-filter-to');
-  cuttingFilterFrom = (from && from.value) ? from.value : null;
-  cuttingFilterTo   = (to   && to.value)   ? to.value   : null;
+  var rangeInp = document.getElementById('cutting-filter-range');
+  if (!rangeInp) return;
+  var val = rangeInp.value;
+  if (!val) { cuttingFilterFrom = null; cuttingFilterTo = null; }
+  else if (val.indexOf(' \u2014 ') !== -1) {
+    var parts = val.split(' \u2014 ');
+    // Конвертируем дд.мм.гггг → YYYY-MM-DD
+    cuttingFilterFrom = _cuttingDisplayToISO(parts[0]) || null;
+    cuttingFilterTo   = _cuttingDisplayToISO(parts[1]) || null;
+  } else {
+    cuttingFilterFrom = _cuttingDisplayToISO(val) || null;
+    cuttingFilterTo   = cuttingFilterFrom;
+  }
   renderCuttingMain();
 }
 
@@ -216,10 +230,9 @@ function resetFilter() {
   var today = todayStr();
   cuttingFilterFrom = today;
   cuttingFilterTo   = today;
-  var from = document.getElementById('cutting-filter-from');
-  var to   = document.getElementById('cutting-filter-to');
-  if (from) from.value = today;
-  if (to)   to.value   = today;
+  var rangeInp = document.getElementById('cutting-filter-range');
+  if (rangeInp) rangeInp.value = _cuttingISOToDisplay(today);
+  _cuttingClosePicker();
   renderCuttingMain();
 }
 
@@ -227,28 +240,28 @@ function resetFilter() {
 // RENDER MAIN SCREEN
 // ============================================================
 function renderCuttingScreen() {
-  // Update filter inputs
-  var from = document.getElementById('cutting-filter-from');
-  var to   = document.getElementById('cutting-filter-to');
-  if (from && !from.value) from.value = cuttingFilterFrom || todayStr();
-  if (to   && !to.value)   to.value   = cuttingFilterTo   || todayStr();
-
-  // Cook: restrict to today only, hide export, hide products editor
+  var rangeInp  = document.getElementById('cutting-filter-range');
   var exportBtn = document.getElementById('cutting-export-btn');
   var editBtn   = document.getElementById('cutting-edit-products-btn');
-  var filterRow = document.getElementById('cutting-filter-row');
+  var today     = todayStr();
+
+  // Инициализируем range input если пустой
+  if (rangeInp && !rangeInp.value) {
+    var from = cuttingFilterFrom || today;
+    var to   = cuttingFilterTo   || today;
+    rangeInp.value = from === to
+      ? _cuttingISOToDisplay(from)
+      : _cuttingISOToDisplay(from) + ' \u2014 ' + _cuttingISOToDisplay(to);
+  }
 
   if (isCook()) {
-    // Force today
-    cuttingFilterFrom = todayStr();
-    cuttingFilterTo   = todayStr();
-    if (from) { from.value = cuttingFilterFrom; from.disabled = true; }
-    if (to)   { to.value   = cuttingFilterTo;   to.disabled   = true; }
+    cuttingFilterFrom = today;
+    cuttingFilterTo   = today;
+    if (rangeInp) { rangeInp.value = _cuttingISOToDisplay(today); rangeInp.disabled = true; }
     if (exportBtn) exportBtn.style.display = 'none';
     if (editBtn)   editBtn.style.display   = 'none';
   } else {
-    if (from) from.disabled = false;
-    if (to)   to.disabled   = false;
+    if (rangeInp) rangeInp.disabled = false;
     if (exportBtn) exportBtn.style.display = '';
     if (editBtn)   editBtn.style.display   = isAdmin() ? 'flex' : 'none';
   }
@@ -322,6 +335,9 @@ function openCuttingProduct(product) {
   cuttingViewProduct = product;
   document.getElementById('cutting-product-title').textContent = product;
   renderCuttingProductList();
+  // Скрываем фиксированную кнопку на экране деталей
+  var addBtn = document.getElementById('cutting-add-btn-wrap');
+  if (addBtn) addBtn.style.display = 'none';
   goTo('cutting-product');
 }
 
@@ -744,7 +760,125 @@ function saveCuttingProducts() {
 }
 
 // ============================================================
-// TOAST — уведомление об офлайн-сохранении (Этап 5)
+// CUTTING DATE HELPERS
+// ============================================================
+function _cuttingISOToDisplay(iso) {
+  // 'YYYY-MM-DD' → 'дд.мм.гггг'
+  if (!iso) return '';
+  var p = iso.split('-');
+  return p[2] + '.' + p[1] + '.' + p[0];
+}
+function _cuttingDisplayToISO(display) {
+  // 'дд.мм.гггг' → 'YYYY-MM-DD'
+  if (!display) return '';
+  var p = display.trim().split('.');
+  if (p.length !== 3) return '';
+  return p[2] + '-' + p[1] + '-' + p[0];
+}
+
+// ============================================================
+// CUTTING DATE RANGE PICKER (копия из writeoff)
+// ============================================================
+var _cuttingPickerStep  = 0;
+var _cuttingPickerFrom  = null;
+var _cuttingPickerTo    = null;
+var _cuttingPickerMonth = null;
+
+function openCuttingDatePicker() {
+  var rangeInp = document.getElementById('cutting-filter-range');
+  if (rangeInp && rangeInp.disabled) return;
+  var wrap = document.getElementById('cutting-datepicker-wrap');
+  if (!wrap) return;
+  if (wrap.style.display !== 'none') { wrap.style.display = 'none'; return; }
+  var baseDate = cuttingFilterFrom ? new Date(cuttingFilterFrom) : new Date();
+  _cuttingPickerMonth = new Date(baseDate.getFullYear(), baseDate.getMonth(), 1);
+  _cuttingPickerFrom  = cuttingFilterFrom || null;
+  _cuttingPickerTo    = cuttingFilterTo   || null;
+  _cuttingPickerStep  = 0;
+  wrap.style.display = 'block';
+  _cuttingRenderPicker();
+}
+
+function _cuttingRenderPicker() {
+  var wrap = document.getElementById('cutting-datepicker-wrap');
+  if (!wrap) return;
+  var m = _cuttingPickerMonth;
+  var year = m.getFullYear(), month = m.getMonth();
+  var monthNames = ['\u042f\u043d\u0432\u0430\u0440\u044c','\u0424\u0435\u0432\u0440\u0430\u043b\u044c','\u041c\u0430\u0440\u0442','\u0410\u043f\u0440\u0435\u043b\u044c','\u041c\u0430\u0439','\u0418\u044e\u043d\u044c','\u0418\u044e\u043b\u044c','\u0410\u0432\u0433\u0443\u0441\u0442','\u0421\u0435\u043d\u0442\u044f\u0431\u0440\u044c','\u041e\u043a\u0442\u044f\u0431\u0440\u044c','\u041d\u043e\u044f\u0431\u0440\u044c','\u0414\u0435\u043a\u0430\u0431\u0440\u044c'];
+  var dayNames = ['\u041f\u043d','\u0412\u0442','\u0421\u0440','\u0427\u0442','\u041f\u0442','\u0421\u0431','\u0412\u0441'];
+  var hint = _cuttingPickerStep === 0 ? '\u0412\u044b\u0431\u0435\u0440\u0438 \u043d\u0430\u0447\u0430\u043b\u043e \u043f\u0435\u0440\u0438\u043e\u0434\u0430' : '\u0412\u044b\u0431\u0435\u0440\u0438 \u043a\u043e\u043d\u0435\u0446 \u043f\u0435\u0440\u0438\u043e\u0434\u0430';
+
+  var html = '<div style="font-size:12px;color:var(--text-muted);text-align:center;margin-bottom:8px;">' + hint + '</div>'
+    + '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">'
+    + '<button onclick="_cuttingPrevMonth()" style="background:none;border:none;font-size:18px;cursor:pointer;color:var(--text-primary);padding:4px 8px;">\u2039</button>'
+    + '<div style="font-family:Syne,sans-serif;font-size:15px;font-weight:700;color:var(--text-primary);">' + monthNames[month] + ' ' + year + '</div>'
+    + '<button onclick="_cuttingNextMonth()" style="background:none;border:none;font-size:18px;cursor:pointer;color:var(--text-primary);padding:4px 8px;">\u203a</button>'
+    + '</div>'
+    + '<div style="display:grid;grid-template-columns:repeat(7,1fr);gap:2px;text-align:center;">';
+  dayNames.forEach(function(d){ html += '<div style="font-size:10px;color:var(--text-muted);font-weight:600;padding:2px 0;">' + d + '</div>'; });
+
+  var firstDay = (new Date(year, month, 1).getDay() + 6) % 7;
+  for (var i = 0; i < firstDay; i++) html += '<div></div>';
+
+  var daysInMonth = new Date(year, month + 1, 0).getDate();
+  var todayISO    = todayStr();
+  for (var d2 = 1; d2 <= daysInMonth; d2++) {
+    var ds   = year + '-' + pad(month + 1) + '-' + pad(d2);
+    var isF  = ds === _cuttingPickerFrom, isT = ds === _cuttingPickerTo;
+    var inR  = _cuttingPickerFrom && _cuttingPickerTo && ds > _cuttingPickerFrom && ds < _cuttingPickerTo;
+    var isTd = ds === todayISO;
+    var bg = 'transparent', clr = 'var(--text-primary)', fw = '400', br = '50%';
+    if (isF || isT) { bg = 'var(--accent2,#C04F14)'; clr = '#fff'; fw = '700'; }
+    else if (inR)   { bg = 'rgba(192,79,20,.15)'; br = '4px'; }
+    else if (isTd)  { clr = 'var(--accent2,#C04F14)'; fw = '600'; }
+    html += '<div onclick="_cuttingPickDay(\'' + ds + '\')" style="padding:6px 2px;cursor:pointer;border-radius:' + br + ';background:' + bg + ';color:' + clr + ';font-weight:' + fw + ';font-size:13px;">' + d2 + '</div>';
+  }
+
+  html += '</div>'
+    + '<div style="display:flex;gap:8px;margin-top:10px;">'
+    + '<button onclick="_cuttingClosePicker()" style="flex:1;background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:8px;font-size:13px;cursor:pointer;font-family:inherit;color:var(--text-muted);">\u041e\u0442\u043c\u0435\u043d\u0430</button>'
+    + '<button onclick="_cuttingApplyPicker()" style="flex:1;background:var(--accent2,#C04F14);color:#fff;border:none;border-radius:var(--radius-sm);padding:8px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;">\u041f\u0440\u0438\u043c\u0435\u043d\u0438\u0442\u044c</button>'
+    + '</div>';
+  wrap.innerHTML = html;
+}
+
+function _cuttingPrevMonth() {
+  _cuttingPickerMonth = new Date(_cuttingPickerMonth.getFullYear(), _cuttingPickerMonth.getMonth() - 1, 1);
+  _cuttingRenderPicker();
+}
+function _cuttingNextMonth() {
+  _cuttingPickerMonth = new Date(_cuttingPickerMonth.getFullYear(), _cuttingPickerMonth.getMonth() + 1, 1);
+  _cuttingRenderPicker();
+}
+function _cuttingPickDay(ds) {
+  if (_cuttingPickerStep === 0) {
+    _cuttingPickerFrom = ds; _cuttingPickerTo = null; _cuttingPickerStep = 1;
+  } else {
+    if (ds < _cuttingPickerFrom) { _cuttingPickerTo = _cuttingPickerFrom; _cuttingPickerFrom = ds; }
+    else { _cuttingPickerTo = ds; }
+    _cuttingPickerStep = 0;
+  }
+  _cuttingRenderPicker();
+}
+function _cuttingApplyPicker() {
+  if (!_cuttingPickerFrom) return;
+  cuttingFilterFrom = _cuttingPickerFrom;
+  cuttingFilterTo   = _cuttingPickerTo || _cuttingPickerFrom;
+  var rangeInp = document.getElementById('cutting-filter-range');
+  if (rangeInp) {
+    rangeInp.value = cuttingFilterFrom === cuttingFilterTo
+      ? _cuttingISOToDisplay(cuttingFilterFrom)
+      : _cuttingISOToDisplay(cuttingFilterFrom) + ' \u2014 ' + _cuttingISOToDisplay(cuttingFilterTo);
+  }
+  _cuttingClosePicker();
+  renderCuttingMain();
+}
+function _cuttingClosePicker() {
+  var wrap = document.getElementById('cutting-datepicker-wrap');
+  if (wrap) wrap.style.display = 'none';
+}
+
+// ============================================================
 // ============================================================
 function _showCuttingToast(msg) {
   var toast = document.getElementById('cutting-toast');

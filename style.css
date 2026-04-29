@@ -525,7 +525,9 @@ body.dark button.admin-btn.delete {
 #edit-zones-btn,
 #manage-sections-btn,
 #cutting-edit-products-btn,
-#cutting-export-btn {
+#cutting-export-btn,
+#wo-edit-products-btn,
+#wo-export-btn {
   background: var(--surface) !important;
   border: 1px solid var(--border) !important;
   border-radius: 50% !important;
@@ -547,18 +549,25 @@ body.dark button.admin-btn.delete {
 /* Шестерёнки скрыты по умолчанию — JS показывает */
 #edit-zones-btn,
 #manage-sections-btn,
-#cutting-edit-products-btn {
+#cutting-edit-products-btn,
+#wo-edit-products-btn {
   display: none;
 }
 
-/* Excel кнопка — всегда flex, JS скрывает для cook через style */
+/* Excel кнопка разделки — всегда flex */
 #cutting-export-btn {
   display: flex !important;
+}
+/* Excel кнопка списания — JS управляет видимостью (скрыто для повара) */
+#wo-export-btn {
+  display: flex;
 }
 #edit-zones-btn:active,
 #manage-sections-btn:active,
 #cutting-edit-products-btn:active,
-#cutting-export-btn:active {
+#cutting-export-btn:active,
+#wo-edit-products-btn:active,
+#wo-export-btn:active {
   opacity: .7 !important;
   box-shadow: none !important;
 }
@@ -628,10 +637,49 @@ body.dark button.admin-btn.delete {
   box-shadow: none;
 }
 
+/* Фиксированная кнопка «Новое списание» */
+#wo-add-btn-wrap {
+  display: none; /* скрыт по умолчанию, показывается только на экране списания */
+  position: fixed;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 100%;
+  max-width: 430px;
+  padding: 12px 20px;
+  padding-bottom: calc(12px + env(safe-area-inset-bottom));
+  background: linear-gradient(to top, var(--bg) 70%, transparent);
+  z-index: 200;
+  box-sizing: border-box;
+}
+#wo-add-btn-wrap .cutting-new-btn {
+  width: 100%;
+}
+
+/* Фиксированная кнопка «Новая запись» разделки (та же логика) */
+#cutting-add-btn-wrap {
+  display: none;
+  position: fixed;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 100%;
+  max-width: 430px;
+  padding: 12px 20px;
+  padding-bottom: calc(12px + env(safe-area-inset-bottom));
+  background: linear-gradient(to top, var(--bg) 70%, transparent);
+  z-index: 200;
+  box-sizing: border-box;
+}
+#cutting-add-btn-wrap .cutting-new-btn {
+  width: 100%;
+}
+
 /* JS sets display:block — override to flex */
 #edit-zones-btn[style*="block"],
 #manage-sections-btn[style*="block"],
-#cutting-edit-products-btn[style*="block"] {
+#cutting-edit-products-btn[style*="block"],
+#wo-edit-products-btn[style*="block"] {
   display: flex !important;
 }
 

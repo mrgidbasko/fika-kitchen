@@ -55,7 +55,7 @@ function loadData() {
       return Array.isArray(data[k]) && k !== 'dishes' && k !== 'pf' &&
              k !== 'sectionMeta' && k !== 'zoneMeta' && k !== 'sectionOrder' &&
              k !== 'zoneOrder' && k !== 'users' && k !== 'cutting' &&
-             k !== '__dishes__' && k !== '__cutting__';
+             k !== '__dishes__' && k !== '__cutting__' && k !== '__writeoff__';
     });
     if (rootZoneKeys.length > 0 && (!data.pf || Object.keys(data.pf).length === 0)) {
       // Migrate root zones to /pf
@@ -122,7 +122,7 @@ function saveToFirebase() {
   // Preserve existing ZONE_ORDER — only rebuild if missing
   window.SECTION_ORDER = Object.keys(DISHES);
   if (!window.ZONE_ORDER || !Array.isArray(window.ZONE_ORDER) || window.ZONE_ORDER.length === 0) {
-    window.ZONE_ORDER = Object.keys(PF).concat(['__dishes__', '__cutting__']);
+    window.ZONE_ORDER = Object.keys(PF).concat(['__dishes__', '__cutting__', '__writeoff__']);
   }
   return Promise.all([
     fbSet('/dishes',       DISHES),
@@ -553,6 +553,7 @@ function renderZonesGrid() {
   // If no fixed zones in order yet, append them at end
   var dishesInOrder   = fullOrder.indexOf('__dishes__')   >= 0;
   var cuttingInOrder  = fullOrder.indexOf('__cutting__')  >= 0;
+  var writeoffInOrder = fullOrder.indexOf('__writeoff__') >= 0;
 
   if (fullOrder.length) {
     zoneKeys.sort(function(a, b) {
@@ -563,8 +564,9 @@ function renderZonesGrid() {
   }
 
   // Determine if fixed cards should come before or after based on ZONE_ORDER
-  var dishPos   = dishesInOrder  ? fullOrder.indexOf('__dishes__')   : 9998;
-  var cutPos    = cuttingInOrder ? fullOrder.indexOf('__cutting__')  : 9999;
+  var dishPos   = dishesInOrder   ? fullOrder.indexOf('__dishes__')   : 9998;
+  var cutPos    = cuttingInOrder  ? fullOrder.indexOf('__cutting__')  : 9999;
+  var woPos     = writeoffInOrder ? fullOrder.indexOf('__writeoff__') : 10000;
 
   // We'll insert fixed cards in renderZonesGrid based on their position
   // Build mixed render order: PF zones + fixed slots
@@ -574,13 +576,14 @@ function renderZonesGrid() {
   pfKeys.forEach(function(k){ allPos.push({k:k, pos: fullOrder.indexOf(k)<0?500:fullOrder.indexOf(k)}); });
   allPos.push({k:'__dishes__',   pos: dishPos});
   allPos.push({k:'__cutting__',  pos: cutPos});
+  allPos.push({k:'__writeoff__', pos: woPos});
   allPos.sort(function(a,b){ return a.pos-b.pos; });
 
-  zoneKeys = allPos.filter(function(x){ return x.k!=='__dishes__'&&x.k!=='__cutting__'; }).map(function(x){ return x.k; });
+  zoneKeys = allPos.filter(function(x){ return x.k!=='__dishes__'&&x.k!=='__cutting__'&&x.k!=='__writeoff__'; }).map(function(x){ return x.k; });
   var renderOrder = allPos.map(function(x){ return x.k; });
 
   renderOrder.forEach(function(zone){
-    if (zone === '__dishes__' || zone === '__cutting__') return; // rendered separately below
+    if (zone === '__dishes__' || zone === '__cutting__' || zone === '__writeoff__') return; // rendered separately below
   });
 
   // Render all cards in order (PF zones + Блюда + Разделка)
@@ -627,6 +630,28 @@ function renderZonesGrid() {
         cc.appendChild(ceb2);
       }
       grid.appendChild(cc);
+      return;
+    }
+    if (zone === '__writeoff__') {
+      // Списание card
+      var woMeta2 = (window.ZONE_META && window.ZONE_META['__writeoff__']) || {};
+      var isDark5 = document.body.classList.contains('dark');
+      var woBg2   = (isDark5 && woMeta2.bgColorDark) ? woMeta2.bgColorDark : (woMeta2.bgColor || '#1A6B3C');
+      var woClr2  = (isDark5 && woMeta2.colorDark)   ? woMeta2.colorDark   : (woMeta2.color   || '#fff');
+      var woFs2   = woMeta2.fontSize ? 'font-size:'+woMeta2.fontSize+'px;' : '';
+      var wc = document.createElement('div');
+      wc.className = 'zone-card';
+      wc.style.cssText = 'background:'+woBg2+';border-color:'+woBg2+';cursor:pointer;';
+      wc.innerHTML = '<div class="zone-label" style="color:'+woClr2+';'+woFs2+'">Списание</div>';
+      wc.dataset.action = 'openWriteoff';
+      if (adminUnlocked) {
+        var web2 = document.createElement('button');
+        web2.className = 'edit-btn style-edit-btn no-drag';
+        web2.dataset.fixedZone = '__writeoff__';
+        web2.innerHTML = '<svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M9.5 1.5l3 3L4 13H1v-3L9.5 1.5z"/></svg>';
+        wc.appendChild(web2);
+      }
+      grid.appendChild(wc);
       return;
     }
     (function(z){
@@ -692,7 +717,7 @@ function openZoneStyleEditor(zone, meta) {
 }
 
 var _zeWorkingZones=[], _zeSortable=null;
-var FIXED_ZONES = ['__dishes__', '__cutting__']; // special non-deletable cards
+var FIXED_ZONES = ['__dishes__', '__cutting__', '__writeoff__']; // special non-deletable cards
 
 function openZonesEditor() {
   if (window.ZONE_ORDER && Array.isArray(window.ZONE_ORDER) && window.ZONE_ORDER.length) {
@@ -700,10 +725,11 @@ function openZonesEditor() {
     Object.keys(PF).forEach(function(k) {
       if (_zeWorkingZones.indexOf(k) === -1) _zeWorkingZones.push(k);
     });
-    if (_zeWorkingZones.indexOf('__dishes__')  === -1) _zeWorkingZones.push('__dishes__');
-    if (_zeWorkingZones.indexOf('__cutting__') === -1) _zeWorkingZones.push('__cutting__');
+    if (_zeWorkingZones.indexOf('__dishes__')   === -1) _zeWorkingZones.push('__dishes__');
+    if (_zeWorkingZones.indexOf('__cutting__')  === -1) _zeWorkingZones.push('__cutting__');
+    if (_zeWorkingZones.indexOf('__writeoff__') === -1) _zeWorkingZones.push('__writeoff__');
   } else {
-    _zeWorkingZones = Object.keys(PF).concat(['__dishes__', '__cutting__']);
+    _zeWorkingZones = Object.keys(PF).concat(['__dishes__', '__cutting__', '__writeoff__']);
   }
   renderZeList();
   document.getElementById('zones-editor-overlay').classList.add('open');
@@ -711,9 +737,9 @@ function openZonesEditor() {
 function closeZonesEditor() { document.getElementById('zones-editor-overlay').classList.remove('open'); if(_zeSortable){_zeSortable.destroy();_zeSortable=null;} }
 function renderZeList() {
   var list = document.getElementById('ze-list'); list.innerHTML='';
-  var fixedLabels = {'__dishes__':'Блюда', '__cutting__':'Разделка'};
+  var fixedLabels = {'__dishes__':'Блюда', '__cutting__':'Разделка', '__writeoff__':'Списание'};
   _zeWorkingZones.forEach(function(zone,i){
-    var isFixed = zone === '__dishes__' || zone === '__cutting__';
+    var isFixed = zone === '__dishes__' || zone === '__cutting__' || zone === '__writeoff__';
     var item=document.createElement('div');
     item.className='se-item'; item.dataset.zone=zone;
     if (isFixed) item.style.opacity = '0.6';
@@ -781,7 +807,7 @@ function saveZonesEditor() {
   items.forEach(function(el) {
     var orig = el.dataset.zone;
     // Fixed cards — record position only, but preserve their meta
-    if (orig === '__dishes__' || orig === '__cutting__') {
+    if (orig === '__dishes__' || orig === '__cutting__' || orig === '__writeoff__') {
       fullOrder.push(orig);
       if (window.ZONE_META && window.ZONE_META[orig]) {
         newZM[orig] = window.ZONE_META[orig];
@@ -1130,8 +1156,9 @@ function initGlobalEvents() {
     var actionEl = target.closest('[data-action]');
     if (actionEl) {
       var action = actionEl.dataset.action;
-      if (action === 'openDishes')  { openDishesGrid(); return; }
-      if (action === 'openCutting') { openCutting();    return; }
+      if (action === 'openDishes')   { openDishesGrid(); return; }
+      if (action === 'openCutting')  { openCutting();    return; }
+      if (action === 'openWriteoff') { openWriteoff();   return; }
       if (action === 'openAdmin')   { openAdmin(currentIsPf ? 'pf' : 'dish', -1); return; }
     }
 
