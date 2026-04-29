@@ -28,7 +28,7 @@
 <div id="update-banner" style="display:none;position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#1A1A1A;color:#fff;border-radius:20px;padding:10px 16px;font-size:13px;font-weight:500;z-index:700;white-space:nowrap;align-items:center;gap:10px;box-shadow:0 4px 20px rgba(0,0,0,.3);">
   Доступно обновление
   <button onclick="applyUpdate()" style="background:#C04F14;border:none;color:#fff;border-radius:12px;padding:5px 12px;font-size:12px;font-weight:500;cursor:pointer;font-family:inherit;">Обновить</button>
-  <button onclick="document.getElementById('update-banner').style.display='none'" style="background:none;border:none;color:#ABA59E;font-size:16px;cursor:pointer;padding:0;line-height:1;">×</button>
+  <button onclick="dismissUpdate()" style="background:none;border:none;color:#ABA59E;font-size:16px;cursor:pointer;padding:0;line-height:1;">×</button>
 </div>
 
 <div id="clipboard-toast" style="display:none;position:fixed;bottom:80px;left:50%;transform:translateX(-50%);background:#1A1A1A;color:#fff;border-radius:20px;padding:8px 18px;font-size:13px;font-weight:500;z-index:600;white-space:nowrap;align-items:center;gap:10px;">
@@ -348,13 +348,20 @@
 <script>
 var _swReg = null;
 function _showUpdateBanner() {
+  localStorage.setItem('fika_update_pending', '1');
   var banner = document.getElementById('update-banner');
   if (banner) banner.style.display = 'flex';
+}
+// Показать баннер если обновление ждёт (даже после перезагрузки)
+if (localStorage.getItem('fika_update_pending') === '1') {
+  document.addEventListener('DOMContentLoaded', function() {
+    var banner = document.getElementById('update-banner');
+    if (banner) banner.style.display = 'flex';
+  });
 }
 if ('serviceWorker' in navigator) {
   navigator.serviceWorker.register('sw.js').then(function(reg) {
     _swReg = reg;
-    // Уже есть ожидающий SW — показать баннер сразу
     if (reg.waiting) _showUpdateBanner();
     reg.addEventListener('updatefound', function() {
       var newWorker = reg.installing;
@@ -367,10 +374,14 @@ if ('serviceWorker' in navigator) {
   }).catch(function(){});
 }
 function applyUpdate() {
+  localStorage.removeItem('fika_update_pending');
   if (_swReg && _swReg.waiting) {
     _swReg.waiting.postMessage({ type: 'SKIP_WAITING' });
-    window.location.reload();
   }
+  window.location.reload();
+}
+function dismissUpdate() {
+  document.getElementById('update-banner').style.display = 'none';
 }
 </script>
 </body>
