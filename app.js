@@ -85,11 +85,29 @@ function loadData() {
     window.SECTION_ORDER = (data.sectionOrder && Array.isArray(data.sectionOrder))     ? data.sectionOrder : null;
     window.ZONE_ORDER    = (data.zoneOrder    && Array.isArray(data.zoneOrder))        ? data.zoneOrder    : null;
     ensurePfZones();
+    // Сохраняем данные в localStorage для офлайн режима
+    try {
+      localStorage.setItem('fika_cache', JSON.stringify({
+        dishes: DISHES, pf: PF,
+        sectionMeta: window.SECTION_META, zoneMeta: window.ZONE_META,
+        sectionOrder: window.SECTION_ORDER, zoneOrder: window.ZONE_ORDER
+      }));
+    } catch(e) {}
     showLoader(false);
     refreshSectionSelect();
     renderZonesGrid();
     // Removed auto-seed: it was overwriting Firebase with default data.js zones
   }).catch(function() {
+    // Офлайн — берём данные из localStorage кэша
+    try {
+      var cached = JSON.parse(localStorage.getItem('fika_cache') || '{}');
+      if (cached.dishes) DISHES = cached.dishes;
+      if (cached.pf) PF = cached.pf;
+      if (cached.sectionMeta) window.SECTION_META = cached.sectionMeta;
+      if (cached.zoneMeta)    window.ZONE_META    = cached.zoneMeta;
+      if (cached.sectionOrder) window.SECTION_ORDER = cached.sectionOrder;
+      if (cached.zoneOrder)    window.ZONE_ORDER    = cached.zoneOrder;
+    } catch(e) {}
     if (typeof DISHES !== 'object') DISHES = {};
     if (typeof PF     !== 'object') PF     = {};
     ensurePfZones();
