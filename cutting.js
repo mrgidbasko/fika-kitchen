@@ -258,14 +258,12 @@ function renderCuttingScreen() {
     cuttingFilterFrom = today;
     cuttingFilterTo   = today;
     if (rangeInp) { rangeInp.value = _cuttingISOToDisplay(today); rangeInp.disabled = true; }
-    if (exportBtn) exportBtn.style.display = 'none';
-    if (editBtn) {
-      // Повар с правом editRaw может редактировать список продуктов
-      editBtn.style.display = (typeof hasPermission === 'function' && hasPermission('editRaw')) ? 'flex' : 'none';
-    }
+    if (exportBtn) exportBtn.classList.add('admin-only');
+    if (editBtn)   editBtn.style.display = 'none';
   } else {
     if (rangeInp) rangeInp.disabled = false;
-    if (exportBtn) exportBtn.style.display = '';
+    if (exportBtn) exportBtn.classList.remove('admin-only');
+    if (exportBtn) exportBtn.style.display = 'flex';
     if (editBtn)   editBtn.style.display   = isAdmin() ? 'flex' : 'none';
   }
 
@@ -384,10 +382,8 @@ function renderCuttingProductList() {
       + miniStat('Отход',  fmtKg(waste) + (isCook() ? '' : ' / '+wastePct+'%'))
       + '</div>';
 
-    // Edit & Delete: admin always; cook — только сегодня; cook с editRaw — тоже только сегодня
-    var canEdit   = isAdmin()
-      || (isCook() && isToday)
-      || (typeof hasPermission === 'function' && hasPermission('editRaw') && isToday);
+    // Edit & Delete: admin always, cook only today
+    var canEdit   = isAdmin() || (isCook() && isToday);
     var canDelete = canEdit;
     if (canEdit) {
       var btnRow = document.createElement('div');

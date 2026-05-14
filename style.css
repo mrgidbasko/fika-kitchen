@@ -554,13 +554,18 @@ body.dark button.admin-btn.delete {
   display: none;
 }
 
-/* Excel кнопка разделки — всегда flex */
+/* Excel кнопка разделки — JS управляет видимостью (скрыто для повара) */
 #cutting-export-btn {
-  display: flex !important;
+  display: flex;
 }
 /* Excel кнопка списания — JS управляет видимостью (скрыто для повара) */
 #wo-export-btn {
   display: flex;
+}
+
+/* Элементы только для admin — скрыты для cook независимо от других правил */
+.admin-only {
+  display: none !important;
 }
 #edit-zones-btn:active,
 #manage-sections-btn:active,
@@ -673,14 +678,6 @@ body.dark button.admin-btn.delete {
 }
 #cutting-add-btn-wrap .cutting-new-btn {
   width: 100%;
-}
-
-/* JS sets display:block — override to flex */
-#edit-zones-btn[style*="block"],
-#manage-sections-btn[style*="block"],
-#cutting-edit-products-btn[style*="block"],
-#wo-edit-products-btn[style*="block"] {
-  display: flex !important;
 }
 
 
