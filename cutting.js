@@ -258,12 +258,11 @@ function renderCuttingScreen() {
     cuttingFilterFrom = today;
     cuttingFilterTo   = today;
     if (rangeInp) { rangeInp.value = _cuttingISOToDisplay(today); rangeInp.disabled = true; }
-    if (exportBtn) exportBtn.classList.add('admin-only');
-    if (editBtn)   editBtn.style.display = 'none';
+    if (exportBtn) exportBtn.style.display = 'none';
+    if (editBtn)   editBtn.style.display   = 'none';
   } else {
     if (rangeInp) rangeInp.disabled = false;
-    if (exportBtn) exportBtn.classList.remove('admin-only');
-    if (exportBtn) exportBtn.style.display = 'flex';
+    if (exportBtn) exportBtn.style.display = '';
     if (editBtn)   editBtn.style.display   = isAdmin() ? 'flex' : 'none';
   }
 
@@ -612,13 +611,13 @@ function saveCuttingRecord() {
 
   var wastePct = brutto>0 ? ((finalWaste/brutto)*100).toFixed(2) : '0';
   var now      = new Date();
-  // For edit: preserve original date (admin can edit any day)
-  // For new record: always use today
   var dateStr;
   if (_cuttingEditId && cuttingRecords[_cuttingEditId] && isAdmin()) {
-    dateStr = cuttingRecords[_cuttingEditId].date; // preserve original date
+    dateStr = cuttingRecords[_cuttingEditId].date; // редактирование — сохраняем оригинальную дату
+  } else if (isAdmin() && cuttingFilterFrom) {
+    dateStr = cuttingFilterFrom; // admin: дата = начало выбранного диапазона фильтра
   } else {
-    dateStr = now.getFullYear()+'-'+pad(now.getMonth()+1)+'-'+pad(now.getDate());
+    dateStr = now.getFullYear()+'-'+pad(now.getMonth()+1)+'-'+pad(now.getDate()); // повар: всегда сегодня
   }
   var timeStr  = pad(now.getHours())+':'+pad(now.getMinutes());
   var userName = (typeof currentUser!=='undefined'&&currentUser) ? (currentUser.name||currentUser.login) : 'Неизвестно';

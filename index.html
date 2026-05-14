@@ -183,25 +183,25 @@
       </div>
       <div class="admin-field">
         <label>Брутто</label>
-        <input type="text" id="cutting-brutto" placeholder="13440 или 13.440" inputmode="decimal"
+        <input type="text" id="cutting-brutto" placeholder="" inputmode="decimal"
           style="width:100%;background:var(--bg);border:1px solid var(--border);border-radius:var(--radius-sm);padding:10px 12px;font-size:14px;color:var(--text-primary);outline:none;-webkit-user-select:text;user-select:text;"
           oninput="onCuttingInput('brutto')">
         <div id="cutting-brutto-hint" style="font-size:12px;color:var(--text-muted);margin-top:4px;min-height:16px;"></div>
       </div>
       <div class="admin-field">
         <label>Нетто</label>
-        <input type="text" id="cutting-netto" placeholder="9800 или 9.800" inputmode="decimal"
+        <input type="text" id="cutting-netto" placeholder="" inputmode="decimal"
           style="width:100%;background:var(--bg);border:1px solid var(--border);border-radius:var(--radius-sm);padding:10px 12px;font-size:14px;color:var(--text-primary);outline:none;-webkit-user-select:text;user-select:text;"
           oninput="onCuttingInput('netto')">
         <div id="cutting-netto-hint" style="font-size:12px;color:var(--text-muted);margin-top:4px;min-height:16px;"></div>
       </div>
       <div class="admin-field">
         <label>Отход</label>
-        <input type="text" id="cutting-waste-input" placeholder="3640 или 3.640" inputmode="decimal"
+        <input type="text" id="cutting-waste-input" placeholder="" inputmode="decimal"
           style="width:100%;background:var(--bg);border:1px solid var(--border);border-radius:var(--radius-sm);padding:10px 12px;font-size:14px;color:var(--text-primary);outline:none;-webkit-user-select:text;user-select:text;"
           oninput="onCuttingInput('waste')">
         <div id="cutting-waste-input-hint" style="font-size:12px;color:var(--text-muted);margin-top:4px;min-height:16px;"></div>
-        <div style="font-size:11px;color:var(--text-muted);margin-top:4px;">Введи любые два из трёх — система посчитает третье</div>
+        <div style="font-size:12px;font-weight:500;color:var(--text-secondary);background:var(--surface2);border-radius:8px;padding:8px 12px;margin-top:8px;text-align:center;">Введи любые два из трёх — система посчитает третье</div>
       </div>
       <div id="cutting-calc" style="display:none;"></div>
       <div class="admin-btn-row">
@@ -299,7 +299,7 @@
       <div class="admin-field">
         <label>Количество</label>
         <div style="display:flex;gap:8px;align-items:center;">
-          <input type="text" id="wo-amount" placeholder="1.5 или 1500" inputmode="decimal"
+          <input type="text" id="wo-amount" placeholder="" inputmode="decimal"
             style="flex:1;background:var(--bg);border:1px solid var(--border);border-radius:var(--radius-sm);padding:10px 12px;font-size:14px;color:var(--text-primary);outline:none;-webkit-user-select:text;user-select:text;">
           <select id="wo-unit"
             style="width:80px;background:var(--bg);border:1px solid var(--border);border-radius:var(--radius-sm);padding:10px 8px;font-size:14px;color:var(--text-primary);outline:none;font-family:inherit;">
@@ -307,7 +307,6 @@
             <option>г</option>
           </select>
         </div>
-        <div style="font-size:11px;color:var(--text-muted);margin-top:4px;">Для веса: &gt;100 = граммы, ≤100 = кг</div>
       </div>
       <div class="admin-field">
         <label>Причина</label>

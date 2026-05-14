@@ -240,9 +240,9 @@ function renderWriteoffScreen() {
     // Повар: только сегодня, поле заблокировано
     writeoffFilterFrom = today;
     writeoffFilterTo   = today;
-    if (rangeInp) { rangeInp.value = today; rangeInp.disabled = true; }
+    if (rangeInp) { rangeInp.value = woFormatDate(today); rangeInp.disabled = true; }
     if (exportBtn) exportBtn.style.display = 'none';
-    if (editBtn)   editBtn.classList.add('admin-only');
+    if (editBtn)   editBtn.style.display   = 'none';
   } else {
     // Admin: свободный выбор диапазона
     if (rangeInp) {
@@ -254,8 +254,7 @@ function renderWriteoffScreen() {
       }
     }
     if (exportBtn) exportBtn.style.display = 'flex';
-    if (editBtn)   editBtn.classList.remove('admin-only');
-    if (editBtn)   editBtn.style.display = woIsAdmin() ? 'flex' : 'none';
+    if (editBtn)   editBtn.style.display   = woIsAdmin() ? 'flex' : 'none';
   }
 
   renderWriteoffMain();
