@@ -141,7 +141,7 @@ function openAdminPanel() {
   var panel = document.getElementById('admin-panel-overlay');
   if (panel) {
     panel.classList.add('open');
-    loadUsersList();
+    switchAdminPanelTab('users');
   }
 }
 
@@ -216,4 +216,174 @@ function adminCreateNewUser() {
       alert(msgs[err.message] || err.message);
       btn.disabled = false; btn.textContent = 'Создать';
     });
+}
+
+// ============================================================
+// ADMIN PANEL — TABS
+// ============================================================
+
+function switchAdminPanelTab(tab) {
+  // Переключаем табы
+  document.querySelectorAll('[data-panel-tab]').forEach(function(btn) {
+    if (btn.dataset.panelTab === tab) {
+      btn.classList.add('active');
+    } else {
+      btn.classList.remove('active');
+    }
+  });
+  // Показываем нужный контент
+  var usersTab       = document.getElementById('admin-tab-users');
+  var permissionsTab = document.getElementById('admin-tab-permissions');
+  if (usersTab)       usersTab.style.display       = tab === 'users'       ? 'block' : 'none';
+  if (permissionsTab) permissionsTab.style.display = tab === 'permissions' ? 'block' : 'none';
+  // Загружаем данные нужной вкладки
+  if (tab === 'users')       loadUsersList();
+  if (tab === 'permissions') loadPermissionsList();
+}
+
+// ============================================================
+// PERMISSIONS TAB
+// ============================================================
+
+var PERMISSIONS_LIST = [
+  { key: 'writeOff',    label: 'Списание' },
+  { key: 'editRaw',     label: 'Редактирование П/Ф' },
+  { key: 'editDishes',  label: 'Редактирование блюд' },
+  { key: 'viewAnalytics', label: 'Аналитика' }
+];
+
+function loadPermissionsList() {
+  var list = document.getElementById('permissions-list');
+  if (!list) return;
+  list.innerHTML = '<div style="text-align:center;color:var(--text-muted);padding:20px;">Загрузка...</div>';
+
+  adminGetUsers().then(function(users) {
+    list.innerHTML = '';
+    if (!users) {
+      list.innerHTML = '<div style="color:var(--text-muted);padding:12px;">Нет пользователей</div>';
+      return;
+    }
+
+    Object.keys(users).forEach(function(uid) {
+      var u = users[uid];
+      if (!uid || uid === 'undefined') return;
+      var perms = (u && u.permissions) ? u.permissions : {};
+
+      var card = document.createElement('div');
+      card.style.cssText = 'padding:12px 0;border-bottom:1px solid var(--border);';
+
+      // Шапка пользователя
+      var header = document.createElement('div');
+      header.style.cssText = 'margin-bottom:8px;';
+      header.innerHTML = '<div style="font-size:15px;font-weight:500;color:var(--text-primary);">' + (u.name || u.login || '') + '</div>'
+        + '<div style="font-size:12px;color:var(--text-muted);">' + (u.login || '') + ' · ' + (u.role === 'admin' ? 'Администратор' : 'Повар') + '</div>';
+      card.appendChild(header);
+
+      // Чекбоксы — через addEventListener, не inline onchange
+      var grid = document.createElement('div');
+      grid.style.cssText = 'display:grid;grid-template-columns:1fr 1fr;gap:6px;';
+
+      PERMISSIONS_LIST.forEach(function(p) {
+        // admin по умолчанию имеет все права; cook — нет (если не задано явно)
+        var defaultVal = u.role === 'admin';
+        var checked = (perms[p.key] !== undefined && perms[p.key] !== null)
+          ? !!perms[p.key]
+          : defaultVal;
+
+        var lbl = document.createElement('label');
+        lbl.style.cssText = 'display:flex;align-items:center;gap:6px;font-size:13px;color:var(--text-primary);cursor:pointer;padding:4px 0;';
+
+        var cb = document.createElement('input');
+        cb.type = 'checkbox';
+        cb.checked = checked;
+        cb.style.cssText = 'width:16px;height:16px;cursor:pointer;accent-color:var(--accent2,#C04F14);flex-shrink:0;';
+        cb.dataset.uid    = uid;
+        cb.dataset.permKey = p.key;
+
+        cb.addEventListener('change', function() {
+          var cbUid = this.dataset.uid;
+          var cbKey = this.dataset.permKey;
+          var cbVal = this.checked;
+          savePermission(cbUid, cbKey, cbVal);
+        });
+
+        lbl.appendChild(cb);
+        lbl.appendChild(document.createTextNode(p.label));
+        grid.appendChild(lbl);
+      });
+
+      card.appendChild(grid);
+      list.appendChild(card);
+    });
+  }).catch(function(e) {
+    console.error('loadPermissionsList error:', e);
+    list.innerHTML = '<div style="color:#e24b4a;padding:12px;">Ошибка загрузки</div>';
+  });
+}
+
+function savePermission(uid, permKey, value) {
+  if (!uid || uid === 'undefined') {
+    console.error('savePermission: invalid uid', uid);
+    return;
+  }
+  if (!currentUser) {
+    console.error('savePermission: no currentUser');
+    return;
+  }
+
+  // Получаем токен (с возможностью обновления)
+  var tokenPromise = typeof authGetFreshToken === 'function'
+    ? authGetFreshToken()
+    : Promise.resolve(currentUser.token);
+
+  tokenPromise.then(function(token) {
+    if (!token) { console.error('savePermission: no token'); return; }
+
+    var url = FIREBASE_URL + '/users/' + uid + '/permissions/' + permKey + '.json?auth=' + token;
+    return fetch(url, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(value)
+    });
+  }).then(function(r) {
+    if (!r) return;
+    if (r.status === 401 || r.status === 403) {
+      // Токен протух — пробуем обновить и повторить
+      console.warn('savePermission: token expired, refreshing...');
+      if (typeof authRefreshToken === 'function') {
+        authRefreshToken().then(function(newToken) {
+          if (!newToken) { alert('Сессия истекла. Перезайди в аккаунт.'); return; }
+          var url2 = FIREBASE_URL + '/users/' + uid + '/permissions/' + permKey + '.json?auth=' + newToken;
+          fetch(url2, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(value)
+          }).then(function(r2) {
+            if (!r2.ok) console.error('savePermission retry failed:', r2.status);
+          });
+        });
+      } else {
+        alert('Сессия истекла. Перезайди в аккаунт.');
+      }
+      return;
+    }
+    if (!r.ok) {
+      r.text().then(function(t) { console.error('savePermission error:', r.status, t); });
+    }
+  }).catch(function(e) {
+    console.error('savePermission fetch error:', e);
+    alert('Ошибка сети при сохранении доступа');
+  });
+}
+
+// ============================================================
+// FALLBACK: hasPermission(key) — используй вместо прямой проверки роли
+// ============================================================
+function hasPermission(key) {
+  if (!currentUser) return false;
+  if (currentUser.role === 'admin') return true;
+  if (currentUser.permissions && currentUser.permissions[key] !== undefined) {
+    return !!currentUser.permissions[key];
+  }
+  return false;
 }

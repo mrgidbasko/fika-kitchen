@@ -17,3 +17,16 @@ function usersGetAll(adminToken) {
   return fetch(FIREBASE_URL + '/users.json?auth=' + adminToken)
     .then(function(r){ return r.json(); });
 }
+
+function usersSetPermission(uid, permKey, value, adminToken) {
+  return fetch(FIREBASE_URL + '/users/' + uid + '/permissions/' + permKey + '.json?auth=' + adminToken, {
+    method: 'PUT',
+    headers: {'Content-Type':'application/json'},
+    body: JSON.stringify(value)
+  }).then(function(r){ return r.json(); });
+}
+
+function usersGetPermissions(uid, adminToken) {
+  return fetch(FIREBASE_URL + '/users/' + uid + '/permissions.json?auth=' + adminToken)
+    .then(function(r){ return r.json(); });
+}

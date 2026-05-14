@@ -26,9 +26,11 @@ function authLogin(login, password) {
       .then(function(rec) {
         currentUser = {
           uid: uid, token: token,
+          refreshToken: d.refreshToken,        // ← сохраняем для обновления
           login: login, email: d.email,
           name: (rec && rec.name) || login,
-          role: (rec && rec.role) || 'cook'
+          role: (rec && rec.role) || 'cook',
+          permissions: (rec && rec.permissions) || null
         };
         localStorage.setItem('fika_user', JSON.stringify(currentUser));
         return currentUser;
@@ -92,4 +94,31 @@ function adminDeleteUser(uid) {
   return fetch(FIREBASE_URL + '/users/' + uid + '.json?auth=' + currentUser.token, {
     method: 'DELETE'
   }).then(function(r){ return r.json(); });
+}
+
+// ---- Token refresh (токен живёт 1 час, нужно обновлять) ----
+
+function authRefreshToken() {
+  if (!currentUser || !currentUser.refreshToken) return Promise.resolve(null);
+  return fetch('https://securetoken.googleapis.com/v1/token?key=' + FIREBASE_KEY, {
+    method: 'POST',
+    headers: {'Content-Type':'application/json'},
+    body: JSON.stringify({grant_type:'refresh_token', refresh_token: currentUser.refreshToken})
+  })
+  .then(function(r){ return r.json(); })
+  .then(function(d) {
+    if (d.error || !d.id_token) return null;
+    currentUser.token        = d.id_token;
+    currentUser.refreshToken = d.refresh_token;
+    localStorage.setItem('fika_user', JSON.stringify(currentUser));
+    return currentUser.token;
+  })
+  .catch(function() { return null; });
+}
+
+// Получить свежий токен — используй перед записью в Firebase
+function authGetFreshToken() {
+  return Promise.resolve(currentUser && currentUser.token || null);
+  // Для автообновления раскомментируй:
+  // return authRefreshToken().then(function(t){ return t || (currentUser && currentUser.token); });
 }
