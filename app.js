@@ -258,11 +258,16 @@ function renderList(items, isBluda) {
     empty.textContent = 'Пока пусто';
     list.appendChild(empty);
   } else {
+    // Определяем права на редактирование текущего списка
+    var canEditList = adminUnlocked ||
+      (isBluda
+        ? (typeof hasPermission === 'function' && hasPermission('editDishes'))
+        : (typeof hasPermission === 'function' && hasPermission('editRaw')));
     items.forEach(function(item, i){
       var row = document.createElement('div');
       row.className = 'item-row';
       row.dataset.idx = i;
-      if (adminUnlocked) {
+      if (canEditList) {
         var handle = document.createElement('span');
         handle.className = 'drag-handle';
         handle.innerHTML = '<svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><line x1="3" y1="5" x2="13" y2="5"/><line x1="3" y1="8" x2="13" y2="8"/><line x1="3" y1="11" x2="13" y2="11"/></svg>';
@@ -272,7 +277,7 @@ function renderList(items, isBluda) {
       nameSpan.className = 'item-name';
       nameSpan.textContent = item.name;
       row.appendChild(nameSpan);
-      if (adminUnlocked) {
+      if (canEditList) {
         row.appendChild(createEditButton(i));
       }
       var arrow = document.createElement('span');
@@ -283,8 +288,12 @@ function renderList(items, isBluda) {
       list.appendChild(row);
     });
   }
-  // ADD BUTTON
-  if (adminUnlocked) {
+  // ADD BUTTON — только admin или повар с правом редактирования
+  var canAddItem = adminUnlocked ||
+    (isBluda
+      ? (typeof hasPermission === 'function' && hasPermission('editDishes'))
+      : (typeof hasPermission === 'function' && hasPermission('editRaw')));
+  if (canAddItem) {
     var addBtn = document.createElement('button');
     addBtn.className = 'add-item-btn';
     addBtn.style.cssText += ';position:relative;z-index:10;pointer-events:auto;';
@@ -633,7 +642,11 @@ function renderZonesGrid() {
       return;
     }
     if (zone === '__writeoff__') {
-      // Списание card
+      // Карточка «Списание» — только для admin или если есть разрешение writeOff
+      var canSeeWriteoff = (typeof hasPermission === 'function')
+        ? hasPermission('writeOff')
+        : adminUnlocked; // fallback если auth ещё не загружен
+      if (!canSeeWriteoff) return; // cook без права writeOff не видит карточку
       var woMeta2 = (window.ZONE_META && window.ZONE_META['__writeoff__']) || {};
       var isDark5 = document.body.classList.contains('dark');
       var woBg2   = (isDark5 && woMeta2.bgColorDark) ? woMeta2.bgColorDark : (woMeta2.bgColor || '#1A6B3C');

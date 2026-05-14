@@ -44,6 +44,8 @@ function hideAuthScreen() {
   } else {
     if (typeof lockAdmin === 'function') lockAdmin();
   }
+  // Apply permissions to UI (writeOff card, edit buttons, etc.)
+  applyPermissions();
 }
 
 function _hideZonesLabel() {
@@ -377,13 +379,27 @@ function savePermission(uid, permKey, value) {
 }
 
 // ============================================================
-// FALLBACK: hasPermission(key) — используй вместо прямой проверки роли
+// hasPermission(key) — единая точка проверки прав
+// admin всегда true; cook — по explicit permissions, fallback false
 // ============================================================
 function hasPermission(key) {
   if (!currentUser) return false;
   if (currentUser.role === 'admin') return true;
-  if (currentUser.permissions && currentUser.permissions[key] !== undefined) {
-    return !!currentUser.permissions[key];
-  }
-  return false;
+  if (!currentUser.permissions) return false;
+  var val = currentUser.permissions[key];
+  return val === true || val === 'true';
+}
+
+// ============================================================
+// applyPermissions() — применяет текущие permissions к UI
+// Вызывается после логина, восстановления сессии и live-обновления
+// ============================================================
+function applyPermissions() {
+  if (!currentUser) return;
+  // renderZonesGrid читает hasPermission('writeOff') для карточки Списания
+  if (typeof renderZonesGrid === 'function') renderZonesGrid();
+  // Обновляем текущий список/сетку (кнопки редактирования)
+  if (typeof refreshCurrentView === 'function') refreshCurrentView();
+  // Шапка профиля
+  _updateProfileBar();
 }

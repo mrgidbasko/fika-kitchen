@@ -259,7 +259,10 @@ function renderCuttingScreen() {
     cuttingFilterTo   = today;
     if (rangeInp) { rangeInp.value = _cuttingISOToDisplay(today); rangeInp.disabled = true; }
     if (exportBtn) exportBtn.style.display = 'none';
-    if (editBtn)   editBtn.style.display   = 'none';
+    if (editBtn) {
+      // Повар с правом editRaw может редактировать список продуктов
+      editBtn.style.display = (typeof hasPermission === 'function' && hasPermission('editRaw')) ? 'flex' : 'none';
+    }
   } else {
     if (rangeInp) rangeInp.disabled = false;
     if (exportBtn) exportBtn.style.display = '';
@@ -381,8 +384,10 @@ function renderCuttingProductList() {
       + miniStat('Отход',  fmtKg(waste) + (isCook() ? '' : ' / '+wastePct+'%'))
       + '</div>';
 
-    // Edit & Delete: admin always, cook only today
-    var canEdit   = isAdmin() || (isCook() && isToday);
+    // Edit & Delete: admin always; cook — только сегодня; cook с editRaw — тоже только сегодня
+    var canEdit   = isAdmin()
+      || (isCook() && isToday)
+      || (typeof hasPermission === 'function' && hasPermission('editRaw') && isToday);
     var canDelete = canEdit;
     if (canEdit) {
       var btnRow = document.createElement('div');

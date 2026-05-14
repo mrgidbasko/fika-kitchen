@@ -50,6 +50,24 @@ function authRestoreSession() {
     var saved = localStorage.getItem('fika_user');
     if (saved) currentUser = JSON.parse(saved);
   } catch(e) { currentUser = null; }
+
+  // Сразу возвращаем пользователя из localStorage (для синхронного использования),
+  // но в фоне подтягиваем свежие permissions из Firebase
+  if (currentUser && currentUser.uid && currentUser.token) {
+    fetch(FIREBASE_URL + '/users/' + currentUser.uid + '.json?auth=' + currentUser.token)
+      .then(function(r) { return r.json(); })
+      .then(function(rec) {
+        if (!rec) return;
+        currentUser.permissions = rec.permissions || null;
+        currentUser.role        = rec.role || currentUser.role;
+        currentUser.name        = rec.name || currentUser.name;
+        localStorage.setItem('fika_user', JSON.stringify(currentUser));
+        // Если applyPermissions доступна — применяем обновлённые права к UI
+        if (typeof applyPermissions === 'function') applyPermissions();
+      })
+      .catch(function() { /* сеть недоступна — работаем с кешем */ });
+  }
+
   return currentUser;
 }
 

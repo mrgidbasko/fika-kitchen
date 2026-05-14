@@ -175,6 +175,8 @@ function loadWriteoff() {
 // OPEN WRITEOFF
 // ============================================================
 function openWriteoff() {
+  // Проверяем право доступа к модулю списания
+  if (typeof hasPermission === 'function' && !hasPermission('writeOff')) return;
   _writeoffEditId = null;
   var today = woTodayStr();
   writeoffFilterFrom = today;
@@ -242,7 +244,10 @@ function renderWriteoffScreen() {
     writeoffFilterTo   = today;
     if (rangeInp) { rangeInp.value = today; rangeInp.disabled = true; }
     if (exportBtn) exportBtn.style.display = 'none';
-    if (editBtn)   editBtn.style.display   = 'none';
+    if (editBtn) {
+      // Повар с правом editRaw может редактировать список продуктов списания
+      editBtn.style.display = (typeof hasPermission === 'function' && hasPermission('editRaw')) ? 'flex' : 'none';
+    }
   } else {
     // Admin: свободный выбор диапазона
     if (rangeInp) {
@@ -408,7 +413,9 @@ function _renderWriteoffDetailList(reason, product, rows) {
 
   records.forEach(function(r) {
     var isToday  = r.date === today;
-    var canEdit  = woIsAdmin() || (woIsCook() && isToday && r.user === _woCurrentName());
+    var canEdit  = woIsAdmin()
+      || (woIsCook() && isToday && r.user === _woCurrentName())
+      || (typeof hasPermission === 'function' && hasPermission('writeOff') && isToday && r.user === _woCurrentName());
     var isEgg    = woIsEgg(r.name || '');
     var amtStr   = r.unit === 'порц'
       ? (r.amount + ' порц.')
