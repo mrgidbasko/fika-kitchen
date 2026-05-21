@@ -56,45 +56,37 @@ function ensurePfZones() {
 
 function loadData() {
   showLoader(true);
-  fbGet('/').then(function(data) {
-    if (!data) data = {};
+  Promise.all([
+    fbGet('/dishes'),
+    fbGet('/pf'),
+    fbGet('/sectionMeta'),
+    fbGet('/zoneMeta'),
+    fbGet('/sectionOrder'),
+    fbGet('/zoneOrder')
+  ]).then(function(results) {
+    var dishes      = results[0];
+    var rawPF       = results[1];
+    var sectionMeta = results[2];
+    var zoneMeta    = results[3];
+    var sectionOrder = results[4];
+    var zoneOrder    = results[5];
 
-    // Migration: if zones are at root level (old structure), move them to /pf
-    var rootZoneKeys = Object.keys(data).filter(function(k) {
-      return Array.isArray(data[k]) && k !== 'dishes' && k !== 'pf' &&
-             k !== 'sectionMeta' && k !== 'zoneMeta' && k !== 'sectionOrder' &&
-             k !== 'zoneOrder' && k !== 'users' && k !== 'cutting' &&
-             k !== '__dishes__' && k !== '__cutting__' && k !== '__writeoff__';
-    });
-    if (rootZoneKeys.length > 0 && (!data.pf || Object.keys(data.pf).length === 0)) {
-      // Migrate root zones to /pf
-      var migratedPF = {};
-      rootZoneKeys.forEach(function(k) { migratedPF[k] = data[k]; });
-      data.pf = migratedPF;
-      console.log('Migrating zones to /pf:', rootZoneKeys);
-      // Save migrated structure
-      var migratedPFSave = {};
-      Object.keys(migratedPF).forEach(function(k) {
-        migratedPFSave[k] = (Array.isArray(migratedPF[k]) && migratedPF[k].length === 0) ? {'_empty': true} : migratedPF[k];
-      });
-      fbSet('/pf', migratedPFSave);
-    }
-
-    DISHES = (data.dishes && typeof data.dishes === 'object') ? data.dishes
+    DISHES = (dishes && typeof dishes === 'object') ? dishes
            : (typeof DISHES === 'object' ? DISHES : {});
-    var rawPF = (data.pf && typeof data.pf === 'object') ? data.pf
-            : (typeof PF === 'object' ? PF : {});
-    // Restore empty zones from Firebase placeholder
+
+    var pf = (rawPF && typeof rawPF === 'object') ? rawPF
+           : (typeof PF === 'object' ? PF : {});
     PF = {};
-    Object.keys(rawPF).forEach(function(k) {
-      PF[k] = (rawPF[k] && rawPF[k]._empty) ? [] : rawPF[k];
+    Object.keys(pf).forEach(function(k) {
+      PF[k] = (pf[k] && pf[k]._empty) ? [] : pf[k];
     });
-    window.SECTION_META  = (data.sectionMeta  && typeof data.sectionMeta  === 'object') ? data.sectionMeta  : {};
-    window.ZONE_META     = (data.zoneMeta     && typeof data.zoneMeta     === 'object') ? data.zoneMeta     : {};
-    window.SECTION_ORDER = (data.sectionOrder && Array.isArray(data.sectionOrder))     ? data.sectionOrder : null;
-    window.ZONE_ORDER    = (data.zoneOrder    && Array.isArray(data.zoneOrder))        ? data.zoneOrder    : null;
+
+    window.SECTION_META  = (sectionMeta  && typeof sectionMeta  === 'object') ? sectionMeta  : {};
+    window.ZONE_META     = (zoneMeta     && typeof zoneMeta     === 'object') ? zoneMeta     : {};
+    window.SECTION_ORDER = (sectionOrder && Array.isArray(sectionOrder))      ? sectionOrder : null;
+    window.ZONE_ORDER    = (zoneOrder    && Array.isArray(zoneOrder))         ? zoneOrder    : null;
+
     ensurePfZones();
-    // Сохраняем данные в localStorage для офлайн режима
     try {
       localStorage.setItem('fika_cache', JSON.stringify({
         dishes: DISHES, pf: PF,
@@ -105,7 +97,6 @@ function loadData() {
     showLoader(false);
     refreshSectionSelect();
     renderZonesGrid();
-    // Removed auto-seed: it was overwriting Firebase with default data.js zones
   }).catch(function() {
     // Офлайн — берём данные из localStorage кэша
     try {
