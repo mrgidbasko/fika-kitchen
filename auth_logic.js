@@ -125,15 +125,7 @@ function initAuth() {
   var user = authRestoreSession();
   if (user) {
     hideAuthScreen();
-    // Обновляем токен перед загрузкой данных — он мог протухнуть за 1 час
-    var doLoad = function() {
-      if (typeof loadData === 'function') loadData();
-    };
-    if (typeof authRefreshToken === 'function') {
-      authRefreshToken().then(doLoad).catch(doLoad);
-    } else {
-      doLoad();
-    }
+    if (typeof loadData === 'function') loadData();
   } else {
     showAuthScreen();
   }

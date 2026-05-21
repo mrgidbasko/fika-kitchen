@@ -90,6 +90,16 @@ function loadData() {
     showLoader(true);
   }
 
+  // Таймаут 8 сек — если Firebase не ответил, показываем что есть
+  var loadTimer = setTimeout(function() {
+    showLoader(false);
+    if (typeof DISHES !== 'object') DISHES = {};
+    if (typeof PF !== 'object') PF = {};
+    ensurePfZones();
+    refreshSectionSelect();
+    renderZonesGrid();
+  }, 8000);
+
   // Параллельно тянем свежие данные из Firebase
   Promise.all([
     fbGet('/dishes'),
@@ -99,6 +109,7 @@ function loadData() {
     fbGet('/sectionOrder'),
     fbGet('/zoneOrder')
   ]).then(function(results) {
+    clearTimeout(loadTimer);
     _applyLoadedData(results[0], results[1], results[2], results[3], results[4], results[5]);
     try {
       localStorage.setItem('fika_cache', JSON.stringify({
@@ -109,6 +120,7 @@ function loadData() {
     } catch(e) {}
     showLoader(false);
   }).catch(function() {
+    clearTimeout(loadTimer);
     showLoader(false);
     if (typeof DISHES !== 'object') DISHES = {};
     if (typeof PF     !== 'object') PF     = {};
@@ -156,6 +168,10 @@ function refreshCurrentView() {
 function showLoader(show) {
   var el = document.getElementById('loader');
   if (el) el.style.display = show ? 'flex' : 'none';
+  // Если скрываем loader но пользователь не авторизован — показываем экран логина
+  if (!show && typeof currentUser !== 'undefined' && !currentUser) {
+    if (typeof showAuthScreen === 'function') showAuthScreen();
+  }
 }
 function showSaving(show) {
   var el = document.getElementById('saving-indicator');
