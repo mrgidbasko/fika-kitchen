@@ -7,16 +7,25 @@ var ADMIN_PIN    = '1234'; // резервный PIN (используется �
 // ============================================================
 // FIREBASE REST API
 // ============================================================
+function fbToken() {
+  return (currentUser && currentUser.token) ? currentUser.token : '';
+}
 function fbGet(path) {
-  return fetch(FIREBASE_URL + DB_PREFIX + path + '.json').then(function(r){ return r.json(); });
+  var token = fbToken();
+  var auth  = token ? '?auth=' + token : '';
+  return fetch(FIREBASE_URL + DB_PREFIX + path + '.json' + auth).then(function(r){ return r.json(); });
 }
 function fbSet(path, data) {
-  return fetch(FIREBASE_URL + DB_PREFIX + path + '.json', {
+  var token = fbToken();
+  var auth  = token ? '?auth=' + token : '';
+  return fetch(FIREBASE_URL + DB_PREFIX + path + '.json' + auth, {
     method: 'PUT', headers: {'Content-Type':'application/json'}, body: JSON.stringify(data)
   }).then(function(r){ return r.json(); });
 }
 function fbUpdate(path, data) {
-  return fetch(FIREBASE_URL + DB_PREFIX + path + '.json', {
+  var token = fbToken();
+  var auth  = token ? '?auth=' + token : '';
+  return fetch(FIREBASE_URL + DB_PREFIX + path + '.json' + auth, {
     method: 'PATCH', headers: {'Content-Type':'application/json'}, body: JSON.stringify(data)
   }).then(function(r){ return r.json(); });
 }
