@@ -939,6 +939,11 @@ function saveWriteoffRecord() {
   };
   if (eggKg !== null) record.eggKg = eggKg;
 
+  // Фото обязательно для повара (кроме причины "Стаф")
+  if (woIsCook() && reason !== 'Стаф' && !_woPhotoBlob && !_woPhotoEditUrl) {
+    errEl.textContent = 'Прикрепи фото'; errEl.style.display = 'block'; return;
+  }
+
   btn.disabled = true; btn.textContent = '...';
 
   // Определяем итоговый photoUrl
