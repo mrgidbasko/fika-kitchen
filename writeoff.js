@@ -1349,45 +1349,19 @@ function _woApplyPhotoVisibility() {
   wrap.style.display = (woIsAdmin() || woIsCook()) ? 'block' : 'none';
 }
 
-// Загрузить фото в Firebase Storage, вернуть Promise<url>
+// Загрузить фото — сохраняем как base64 прямо в запись
 function woUploadPhoto(blob, recordId) {
-  return authGetFreshToken().then(function(token) {
-    if (!token) throw new Error('no_token');
-    var now    = new Date();
-    var folder = now.getFullYear() + '-' + woPad(now.getMonth() + 1);
-    var fname  = recordId + '_' + now.getTime() + '.jpg';
-    var path   = 'writeoff-photos/' + folder + '/' + fname;
-    var url = 'https://firebasestorage.googleapis.com/v0/b/fika-d21a6.appspot.com/o'
-      + '?uploadType=media&name=' + encodeURIComponent(path);
-    return fetch(url, {
-      method: 'POST',
-      headers: { 'Content-Type': 'image/jpeg', 'Authorization': 'Firebase ' + token },
-      body: blob
-    }).then(function(r) {
-      if (!r.ok) throw new Error('storage_http_' + r.status);
-      return r.json();
-    }).then(function(d) {
-      return 'https://firebasestorage.googleapis.com/v0/b/fika-d21a6.appspot.com/o/'
-        + encodeURIComponent(path) + '?alt=media&token=' + (d.downloadTokens || '');
-    });
+  return new Promise(function(resolve, reject) {
+    var reader = new FileReader();
+    reader.onload = function(e) { resolve(e.target.result); };
+    reader.onerror = function() { reject(new Error('read_error')); };
+    reader.readAsDataURL(blob);
   });
 }
 
-// Удалить фото из Firebase Storage по URL
+// Удалить фото из записи (base64 — просто убираем поле)
 function woDeletePhotoByUrl(photoUrl) {
-  if (!photoUrl) return Promise.resolve();
-  return authGetFreshToken().then(function(token) {
-    if (!token) return;
-    var match = photoUrl.match(/\/o\/([^?]+)/);
-    if (!match) return;
-    var path = decodeURIComponent(match[1]);
-    var url = 'https://firebasestorage.googleapis.com/v0/b/fika-d21a6.appspot.com/o/'
-      + encodeURIComponent(path);
-    return fetch(url, {
-      method: 'DELETE',
-      headers: { 'Authorization': 'Firebase ' + token }
-    }).catch(function(e) { console.warn('WO photo delete error:', e); });
-  });
+  return Promise.resolve();
 }
 
 // HTML-блок фото в карточке детальной ленты (над текстом)
@@ -1417,53 +1391,39 @@ function woCloseLightbox() {
   document.body.style.overflow = '';
 }
 
-// Очистить фото старше 30 дней (admin only, вызывается из шестерёнки)
+// Очистить фото старше 3 месяцев (admin only, вызывается из шестерёнки)
 function woCleanOldPhotos() {
   if (!woIsAdmin()) return;
-  if (!confirm('Удалить фото списаний старше 30 дней?\nЭто действие нельзя отменить.')) return;
+  if (!confirm('Удалить фото списаний старше 3 месяцев?\nЭто действие нельзя отменить.')) return;
 
   var cutoff = new Date();
-  cutoff.setDate(cutoff.getDate() - 30);
+  cutoff.setMonth(cutoff.getMonth() - 3);
+  var cutoffTs = cutoff.getTime();
 
-  // Собираем папки (YYYY-MM) которые полностью старше cutoff
-  var foldersToDelete = [];
-  var now = new Date();
-  for (var m = 1; m < 24; m++) {
-    var d = new Date(now.getFullYear(), now.getMonth() - m, 1);
-    var lastDay = new Date(d.getFullYear(), d.getMonth() + 1, 0);
-    if (lastDay < cutoff) {
-      foldersToDelete.push(d.getFullYear() + '-' + woPad(d.getMonth() + 1));
-    }
-  }
-
-  // Ищем записи с фото в старых папках
   var promises = [];
   var deleted  = 0;
+
   Object.keys(writeoffRecords).forEach(function(id) {
     var rec = writeoffRecords[id];
     if (!rec || !rec.photoUrl) return;
-    var inOld = foldersToDelete.some(function(folder) {
-      return rec.photoUrl.indexOf('writeoff-photos%2F' + folder) !== -1
-          || rec.photoUrl.indexOf('writeoff-photos/' + folder) !== -1;
-    });
-    if (!inOld) return;
+    // Сравниваем по timestamp записи
+    if (rec.timestamp && rec.timestamp > cutoffTs) return;
     deleted++;
     var recCopy = Object.assign({}, rec);
     delete recCopy.photoUrl;
+    writeoffRecords[id] = recCopy;
     promises.push(
-      woDeletePhotoByUrl(rec.photoUrl).then(function() {
-        writeoffRecords[id] = recCopy;
-        return woFbSet('/records/' + id, recCopy);
-      }).catch(function(e) { console.warn('WO clean photo error id=' + id, e); })
+      woFbSet('/records/' + id, recCopy)
+        .catch(function(e) { console.warn('WO clean photo error id=' + id, e); })
     );
   });
 
   if (!promises.length) {
-    _showWriteoffToast('Нет старых фото для удаления'); return;
+    _showWriteoffToast('Нет фото старше 3 месяцев'); return;
   }
 
   Promise.all(promises).then(function() {
-    _showWriteoffToast('Удалено ' + deleted + ' фото');
+    _showWriteoffToast('Удалено фото из ' + deleted + ' записей');
     renderWriteoffMain();
   }).catch(function() {
     _showWriteoffToast('Ошибка очистки — проверь консоль');
