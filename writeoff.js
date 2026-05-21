@@ -79,15 +79,24 @@ function woIsEgg(name) {
 // ============================================================
 // FIREBASE HELPERS
 // ============================================================
+function woFbToken() {
+  return (typeof currentUser !== 'undefined' && currentUser && currentUser.token)
+    ? currentUser.token : '';
+}
+
 function woFbGet(path) {
-  return fetch(WRITEOFF_FB + path + '.json').then(function(r){
+  var token = woFbToken();
+  var auth = token ? '?auth=' + token : '';
+  return fetch(WRITEOFF_FB + path + '.json' + auth).then(function(r){
     if (!r.ok) throw new Error('HTTP '+r.status);
     return r.json();
   });
 }
 
 function woFbSet(path, data) {
-  return fetch(WRITEOFF_FB + path + '.json', {
+  var token = woFbToken();
+  var auth = token ? '?auth=' + token : '';
+  return fetch(WRITEOFF_FB + path + '.json' + auth, {
     method: 'PUT',
     headers: {'Content-Type':'application/json'},
     body: JSON.stringify(data)
@@ -98,7 +107,9 @@ function woFbSet(path, data) {
 }
 
 function woFbPush(path, data) {
-  return fetch(WRITEOFF_FB + path + '.json', {
+  var token = woFbToken();
+  var auth = token ? '?auth=' + token : '';
+  return fetch(WRITEOFF_FB + path + '.json' + auth, {
     method: 'POST',
     headers: {'Content-Type':'application/json'},
     body: JSON.stringify(data)
@@ -109,7 +120,9 @@ function woFbPush(path, data) {
 }
 
 function woFbDelete(path) {
-  return fetch(WRITEOFF_FB + path + '.json', {method:'DELETE'})
+  var token = woFbToken();
+  var auth = token ? '?auth=' + token : '';
+  return fetch(WRITEOFF_FB + path + '.json' + auth, {method:'DELETE'})
     .then(function(r){ return r.json(); });
 }
 
@@ -128,24 +141,35 @@ function woFbPushSafe(path, data, retries) {
 // LOAD DATA
 // ============================================================
 function loadWriteoff() {
-  // Загружаем /writeoff и /pf параллельно
   var fbBase = 'https://fika-d21a6-default-rtdb.europe-west1.firebasedatabase.app'
     + (typeof DB_PREFIX !== 'undefined' ? DB_PREFIX : '');
 
-  var woPromise  = woFbGet('').catch(function(){ return null; });
-  var pfPromise  = fetch(fbBase + '/pf.json').then(function(r){ return r.json(); }).catch(function(){ return null; });
+  // Дата 30 дней назад для пагинации
+  var fromDate = new Date();
+  fromDate.setDate(fromDate.getDate() - 30);
+  var pad = function(n){ return n < 10 ? '0'+n : ''+n; };
+  var fromStr = fromDate.getFullYear() + '-' + pad(fromDate.getMonth()+1) + '-' + pad(fromDate.getDate());
 
-  Promise.all([woPromise, pfPromise]).then(function(results) {
-    var woData = results[0] || {};
-    var pfData = results[1] || {};
+  var token = woFbToken();
+  var auth = token ? '&auth=' + token : '';
+  var authQ = token ? '?auth=' + token : '';
 
-    // Доп. продукты (admin-only список из /writeoff/products)
-    writeoffProducts = (woData.products && Array.isArray(woData.products))
-      ? woData.products : [];
+  // Записи за 30 дней, продукты и /pf параллельно
+  var recordsUrl = WRITEOFF_FB + '/records.json?orderBy=%22date%22&startAt=%22' + fromStr + '%22' + auth;
+  var productsPromise = woFbGet('/products').catch(function(){ return []; });
+  var recordsPromise  = fetch(recordsUrl).then(function(r){ return r.ok ? r.json() : {}; }).catch(function(){ return {}; });
+  var pfPromise       = fetch(fbBase + '/pf.json' + authQ).then(function(r){ return r.json(); }).catch(function(){ return null; });
+
+  Promise.all([productsPromise, recordsPromise, pfPromise]).then(function(results) {
+    var woProducts = results[0] || [];
+    var woRecords  = results[1] || {};
+    var pfData     = results[2] || {};
+
+    // Доп. продукты
+    writeoffProducts = Array.isArray(woProducts) ? woProducts : [];
 
     // Записи
-    writeoffRecords = (woData.records && typeof woData.records === 'object')
-      ? woData.records : {};
+    writeoffRecords = (woRecords && typeof woRecords === 'object') ? woRecords : {};
 
     // Собираем П/Ф из /pf — берём все названия позиций из всех цехов
     writeoffPfNames = [];

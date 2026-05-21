@@ -104,15 +104,25 @@ function isCook() {
 // ============================================================
 // FIREBASE HELPERS — with retry for reliability
 // ============================================================
-function cFbGet(path) {
-  return fetch(CUTTING_FB + path + '.json').then(function(r){
+function cFbToken() {
+  return (typeof currentUser !== 'undefined' && currentUser && currentUser.token)
+    ? '?auth=' + currentUser.token : '';
+}
+
+function cFbGet(path, query) {
+  var sep = query ? (query.indexOf('?') === -1 ? '?' : '&') : '';
+  var token = cFbToken();
+  var auth = token ? (query ? '&auth=' + currentUser.token : '?auth=' + currentUser.token) : '';
+  var url = CUTTING_FB + path + '.json' + (query || '') + auth;
+  return fetch(url).then(function(r){
     if (!r.ok) throw new Error('HTTP '+r.status);
     return r.json();
   });
 }
 
 function cFbSet(path, data) {
-  return fetch(CUTTING_FB + path + '.json', {
+  var token = cFbToken();
+  return fetch(CUTTING_FB + path + '.json' + token, {
     method: 'PUT',
     headers: {'Content-Type':'application/json'},
     body: JSON.stringify(data)
@@ -123,7 +133,8 @@ function cFbSet(path, data) {
 }
 
 function cFbPush(path, data) {
-  return fetch(CUTTING_FB + path + '.json', {
+  var token = cFbToken();
+  return fetch(CUTTING_FB + path + '.json' + token, {
     method: 'POST',
     headers: {'Content-Type':'application/json'},
     body: JSON.stringify(data)
@@ -165,12 +176,31 @@ function cFbPushSafe(path, data, retries) {
 // LOAD DATA
 // ============================================================
 function loadCutting() {
-  cFbGet('').then(function(data) {
-    if (!data) data = {};
-    cuttingProducts = (data.products && Array.isArray(data.products))
-      ? data.products : CUTTING_PRODUCTS_DEFAULT.slice();
-    cuttingRecords = (data.records && typeof data.records === 'object')
-      ? data.records : {};
+  // Дата 30 дней назад для пагинации
+  var fromDate = new Date();
+  fromDate.setDate(fromDate.getDate() - 30);
+  var fromStr = fromDate.getFullYear() + '-'
+    + pad(fromDate.getMonth()+1) + '-'
+    + pad(fromDate.getDate());
+
+  // Грузим продукты и записи параллельно
+  // Записи: только за последние 30 дней через orderBy+startAt
+  var token = (typeof currentUser !== 'undefined' && currentUser && currentUser.token)
+    ? currentUser.token : '';
+  var auth = token ? '?auth=' + token : '';
+  var recordsUrl = CUTTING_FB + '/records.json'
+    + '?orderBy=%22date%22&startAt=%22' + fromStr + '%22'
+    + (token ? '&auth=' + token : '');
+
+  Promise.all([
+    cFbGet('/products'),
+    fetch(recordsUrl).then(function(r){ return r.ok ? r.json() : {}; }).catch(function(){ return {}; })
+  ]).then(function(results) {
+    var products = results[0];
+    var records  = results[1];
+    cuttingProducts = (products && Array.isArray(products))
+      ? products : CUTTING_PRODUCTS_DEFAULT.slice();
+    cuttingRecords = (records && typeof records === 'object') ? records : {};
     renderCuttingScreen();
   }).catch(function(e) {
     console.error('loadCutting error:', e);
