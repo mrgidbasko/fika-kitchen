@@ -14,7 +14,7 @@
 </head>
 <body>
 
-<div id="loader" style="display:none;position:fixed;inset:0;background:var(--bg);z-index:9999;align-items:center;justify-content:center;flex-direction:column;gap:12px">
+<div id="loader" style="display:flex;position:fixed;inset:0;background:var(--bg);z-index:9999;align-items:center;justify-content:center;flex-direction:column;gap:12px">
   <div style="font-family:'Syne',sans-serif;font-size:22px;font-weight:700">Fika <em style="color:#C04F14;font-style:normal">Kitchen</em></div>
   <div style="color:#ABA59E;font-size:13px">Загрузка...</div>
 </div>
@@ -36,7 +36,7 @@
   <button onclick="clearClipboard()" style="background:none;border:none;color:#ABA59E;font-size:16px;cursor:pointer;padding:0 0 0 4px;line-height:1">×</button>
 </div>
 
-<div class="app">
+<div class="app" style="display:none">
   <div class="header">
     <div class="header-top">
       <div style="width:36px;flex-shrink:0;"></div>
