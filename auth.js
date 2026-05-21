@@ -136,7 +136,5 @@ function authRefreshToken() {
 
 // Получить свежий токен — используй перед записью в Firebase
 function authGetFreshToken() {
-  return Promise.resolve(currentUser && currentUser.token || null);
-  // Для автообновления раскомментируй:
-  // return authRefreshToken().then(function(t){ return t || (currentUser && currentUser.token); });
+  return authRefreshToken().then(function(t){ return t || (currentUser && currentUser.token); });
 }
