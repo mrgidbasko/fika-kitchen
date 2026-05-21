@@ -423,7 +423,8 @@ function _renderWriteoffDetailList(reason, product, rows) {
       ? '<div style="font-size:12px;color:var(--text-muted);margin-top:6px;font-style:italic;">💬 ' + r.comment + '</div>'
       : '';
 
-    row.innerHTML = '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">'
+    row.innerHTML = woRenderPhoto(r.photoUrl)
+      + '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">'
       + '<div style="font-size:13px;font-weight:600;color:var(--text-primary);">' + (r.user || '') + '</div>'
       + '<div style="font-size:12px;color:var(--text-muted);">' + woFormatDate(r.date) + ' ' + (r.time || '') + '</div>'
       + '</div>'
@@ -537,12 +538,21 @@ function openWriteoffForm(editId) {
   }
 
   document.getElementById('wo-form-overlay').classList.add('open');
+  // Показываем блок фото по роли, сбрасываем предыдущее состояние
+  _woApplyPhotoVisibility();
+  _woResetPhotoState();
+  // При редактировании — показываем существующее фото
+  if (_writeoffEditId && writeoffRecords[_writeoffEditId] && writeoffRecords[_writeoffEditId].photoUrl) {
+    _woPhotoEditUrl = writeoffRecords[_writeoffEditId].photoUrl;
+    _woShowPhotoPreview(_woPhotoEditUrl);
+  }
 }
 
 function closeWriteoffForm() {
   document.getElementById('wo-form-overlay').classList.remove('open');
   _writeoffEditId = null;
   _woSelectedProduct = null;
+  _woResetPhotoState();
 }
 
 // ============================================================
@@ -931,10 +941,40 @@ function saveWriteoffRecord() {
 
   btn.disabled = true; btn.textContent = '...';
 
+  // Определяем итоговый photoUrl
+  // При редактировании: либо новый blob, либо старый url, либо null (удалили)
+  // При создании: либо новый blob, либо null
+  var existingPhotoUrl = (_writeoffEditId && writeoffRecords[_writeoffEditId])
+    ? (writeoffRecords[_writeoffEditId].photoUrl || null) : null;
+
+  // Флаг: фото было в записи, но пользователь удалил его
+  var photoWasRemoved = existingPhotoUrl && !_woPhotoBlob && !_woPhotoEditUrl;
+
   if (_writeoffEditId) {
     // Редактирование
     woFbSet('/records/' + _writeoffEditId, record).then(function() {
       writeoffRecords[_writeoffEditId] = record;
+
+      // Загружаем новое фото если выбрано
+      if (_woPhotoBlob) {
+        return woUploadPhoto(_woPhotoBlob, _writeoffEditId).then(function(url) {
+          record.photoUrl = url;
+          writeoffRecords[_writeoffEditId] = record;
+          return woFbSet('/records/' + _writeoffEditId, record);
+        }).catch(function() {
+          _showWriteoffToast('Запись сохранена, но фото не загрузилось');
+        });
+      } else if (photoWasRemoved) {
+        // Удалили фото — убираем поле из БД
+        woDeletePhotoByUrl(existingPhotoUrl);
+        return woFbSet('/records/' + _writeoffEditId, record);
+      } else if (_woPhotoEditUrl) {
+        // Фото не менялось — оставляем
+        record.photoUrl = _woPhotoEditUrl;
+        writeoffRecords[_writeoffEditId] = record;
+        return woFbSet('/records/' + _writeoffEditId, record);
+      }
+    }).then(function() {
       btn.disabled = false; btn.textContent = 'Сохранить';
       closeWriteoffForm();
       renderWriteoffMain();
@@ -952,10 +992,28 @@ function saveWriteoffRecord() {
       btn.disabled = false; btn.textContent = 'Сохранить';
       closeWriteoffForm();
       renderWriteoffMain();
-      _showWriteoffToast('Нет сети — запись сохранена и отправится автоматически');
+      // Фото не загружаем офлайн — показываем тост
+      if (_woPhotoBlob) {
+        _showWriteoffToast('Запись сохранена. Фото не загружено — нет сети');
+      } else {
+        _showWriteoffToast('Нет сети — запись сохранена и отправится автоматически');
+      }
     } else {
       woFbPushSafe('/records', record).then(function(res) {
-        if (res && res.name) writeoffRecords[res.name] = record;
+        var newId = res && res.name;
+        if (newId) writeoffRecords[newId] = record;
+
+        // Загружаем фото если выбрано
+        if (_woPhotoBlob && newId) {
+          return woUploadPhoto(_woPhotoBlob, newId).then(function(url) {
+            record.photoUrl = url;
+            writeoffRecords[newId] = record;
+            return woFbSet('/records/' + newId, record);
+          }).catch(function() {
+            _showWriteoffToast('Запись сохранена, но фото не загрузилось');
+          });
+        }
+      }).then(function() {
         btn.disabled = false; btn.textContent = 'Сохранить';
         closeWriteoffForm();
         renderWriteoffMain();
@@ -1202,6 +1260,214 @@ function _showWriteoffToast(msg) {
   toast.style.opacity = '1';
   clearTimeout(toast._timer);
   toast._timer = setTimeout(function() { toast.style.opacity = '0'; }, 3500);
+}
+
+// ============================================================
+// ФОТО — загрузка в Firebase Storage, сжатие, отображение
+// Все функции с префиксом wo, без новых глобалей
+// ============================================================
+
+// Хранилище выбранного фото для текущей сессии формы
+var _woPhotoBlob = null;    // Blob сжатого фото (null = фото нет)
+var _woPhotoEditUrl = null; // URL фото при редактировании (из Firebase)
+
+// Открыть камеру (environment, без галереи)
+function woTriggerCamera() {
+  var inp = document.getElementById('wo-photo-input');
+  if (inp) { inp.value = ''; inp.click(); }
+}
+
+// Обработка выбора файла с камеры
+function woOnPhotoSelected(input) {
+  var file = input && input.files && input.files[0];
+  if (!file) return;
+  woCompressPhoto(file, function(blob) {
+    _woPhotoBlob    = blob;
+    _woPhotoEditUrl = null;
+    var url = URL.createObjectURL(blob);
+    _woShowPhotoPreview(url);
+  });
+}
+
+// Сжатие до 1200px, quality 0.75
+function woCompressPhoto(file, callback) {
+  var reader = new FileReader();
+  reader.onload = function(e) {
+    var img = new Image();
+    img.onload = function() {
+      var MAX = 1200;
+      var w = img.width, h = img.height;
+      if (w > MAX || h > MAX) {
+        if (w >= h) { h = Math.round(h * MAX / w); w = MAX; }
+        else        { w = Math.round(w * MAX / h); h = MAX; }
+      }
+      var canvas = document.createElement('canvas');
+      canvas.width = w; canvas.height = h;
+      canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+      canvas.toBlob(function(blob) { callback(blob); }, 'image/jpeg', 0.75);
+    };
+    img.src = e.target.result;
+  };
+  reader.readAsDataURL(file);
+}
+
+// Показать превью фото в форме
+function _woShowPhotoPreview(url) {
+  var addBtn  = document.getElementById('wo-photo-add-btn');
+  var preview = document.getElementById('wo-photo-preview');
+  var img     = document.getElementById('wo-photo-img');
+  if (addBtn)  addBtn.style.display  = 'none';
+  if (preview) preview.style.display = 'block';
+  if (img)     img.src = url;
+}
+
+// Убрать фото из формы
+function woRemovePhoto() {
+  _woPhotoBlob    = null;
+  _woPhotoEditUrl = null;
+  var addBtn  = document.getElementById('wo-photo-add-btn');
+  var preview = document.getElementById('wo-photo-preview');
+  var img     = document.getElementById('wo-photo-img');
+  var inp     = document.getElementById('wo-photo-input');
+  if (addBtn)  addBtn.style.display  = 'flex';
+  if (preview) preview.style.display = 'none';
+  if (img)     img.src = '';
+  if (inp)     inp.value = '';
+}
+
+// Сбросить состояние фото при открытии/закрытии формы
+function _woResetPhotoState() {
+  _woPhotoBlob    = null;
+  _woPhotoEditUrl = null;
+  woRemovePhoto();
+}
+
+// Показать/скрыть блок фото по роли
+function _woApplyPhotoVisibility() {
+  var wrap = document.getElementById('wo-photo-wrap');
+  if (!wrap) return;
+  wrap.style.display = (woIsAdmin() || woIsCook()) ? 'block' : 'none';
+}
+
+// Загрузить фото в Firebase Storage, вернуть Promise<url>
+function woUploadPhoto(blob, recordId) {
+  return authGetFreshToken().then(function(token) {
+    if (!token) throw new Error('no_token');
+    var now    = new Date();
+    var folder = now.getFullYear() + '-' + woPad(now.getMonth() + 1);
+    var fname  = recordId + '_' + now.getTime() + '.jpg';
+    var path   = 'writeoff-photos/' + folder + '/' + fname;
+    var url = 'https://firebasestorage.googleapis.com/v0/b/fika-d21a6.appspot.com/o'
+      + '?uploadType=media&name=' + encodeURIComponent(path);
+    return fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'image/jpeg', 'Authorization': 'Firebase ' + token },
+      body: blob
+    }).then(function(r) {
+      if (!r.ok) throw new Error('storage_http_' + r.status);
+      return r.json();
+    }).then(function(d) {
+      return 'https://firebasestorage.googleapis.com/v0/b/fika-d21a6.appspot.com/o/'
+        + encodeURIComponent(path) + '?alt=media&token=' + (d.downloadTokens || '');
+    });
+  });
+}
+
+// Удалить фото из Firebase Storage по URL
+function woDeletePhotoByUrl(photoUrl) {
+  if (!photoUrl) return Promise.resolve();
+  return authGetFreshToken().then(function(token) {
+    if (!token) return;
+    var match = photoUrl.match(/\/o\/([^?]+)/);
+    if (!match) return;
+    var path = decodeURIComponent(match[1]);
+    var url = 'https://firebasestorage.googleapis.com/v0/b/fika-d21a6.appspot.com/o/'
+      + encodeURIComponent(path);
+    return fetch(url, {
+      method: 'DELETE',
+      headers: { 'Authorization': 'Firebase ' + token }
+    }).catch(function(e) { console.warn('WO photo delete error:', e); });
+  });
+}
+
+// HTML-блок фото в карточке детальной ленты (над текстом)
+function woRenderPhoto(photoUrl) {
+  if (!photoUrl) return '';
+  return '<div style="margin:-12px -14px 10px;overflow:hidden;border-radius:var(--radius-sm) var(--radius-sm) 0 0;">'
+    + '<img src="' + photoUrl + '" alt="Фото списания" '
+    + 'style="width:100%;max-height:200px;object-fit:cover;display:block;cursor:pointer;" '
+    + 'onclick="woOpenLightbox(\'' + photoUrl.replace(/'/g, '%27') + '\')">'
+    + '</div>';
+}
+
+// Открыть lightbox
+function woOpenLightbox(url) {
+  var box = document.getElementById('wo-lightbox');
+  var img = document.getElementById('wo-lightbox-img');
+  if (!box || !img) return;
+  img.src = url;
+  box.style.display = 'flex';
+  document.body.style.overflow = 'hidden';
+}
+
+// Закрыть lightbox
+function woCloseLightbox() {
+  var box = document.getElementById('wo-lightbox');
+  if (box) box.style.display = 'none';
+  document.body.style.overflow = '';
+}
+
+// Очистить фото старше 30 дней (admin only, вызывается из шестерёнки)
+function woCleanOldPhotos() {
+  if (!woIsAdmin()) return;
+  if (!confirm('Удалить фото списаний старше 30 дней?\nЭто действие нельзя отменить.')) return;
+
+  var cutoff = new Date();
+  cutoff.setDate(cutoff.getDate() - 30);
+
+  // Собираем папки (YYYY-MM) которые полностью старше cutoff
+  var foldersToDelete = [];
+  var now = new Date();
+  for (var m = 1; m < 24; m++) {
+    var d = new Date(now.getFullYear(), now.getMonth() - m, 1);
+    var lastDay = new Date(d.getFullYear(), d.getMonth() + 1, 0);
+    if (lastDay < cutoff) {
+      foldersToDelete.push(d.getFullYear() + '-' + woPad(d.getMonth() + 1));
+    }
+  }
+
+  // Ищем записи с фото в старых папках
+  var promises = [];
+  var deleted  = 0;
+  Object.keys(writeoffRecords).forEach(function(id) {
+    var rec = writeoffRecords[id];
+    if (!rec || !rec.photoUrl) return;
+    var inOld = foldersToDelete.some(function(folder) {
+      return rec.photoUrl.indexOf('writeoff-photos%2F' + folder) !== -1
+          || rec.photoUrl.indexOf('writeoff-photos/' + folder) !== -1;
+    });
+    if (!inOld) return;
+    deleted++;
+    var recCopy = Object.assign({}, rec);
+    delete recCopy.photoUrl;
+    promises.push(
+      woDeletePhotoByUrl(rec.photoUrl).then(function() {
+        writeoffRecords[id] = recCopy;
+        return woFbSet('/records/' + id, recCopy);
+      }).catch(function(e) { console.warn('WO clean photo error id=' + id, e); })
+    );
+  });
+
+  if (!promises.length) {
+    _showWriteoffToast('Нет старых фото для удаления'); return;
+  }
+
+  Promise.all(promises).then(function() {
+    _showWriteoffToast('Удалено ' + deleted + ' фото');
+    renderWriteoffMain();
+  }).catch(function() {
+    _showWriteoffToast('Ошибка очистки — проверь консоль');
+  });
 }
 
 // ============================================================
