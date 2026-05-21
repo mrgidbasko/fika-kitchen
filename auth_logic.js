@@ -95,6 +95,7 @@ function authShowError(msg) {
     'EMAIL_NOT_FOUND': 'Пользователь не найден',
     'INVALID_PASSWORD': 'Неверный пароль',
     'USER_DISABLED': 'Аккаунт заблокирован',
+    'ACCOUNT_DISABLED': 'Доступ запрещён. Обратитесь к администратору.',
     'INVALID_LOGIN_CREDENTIALS': 'Неверный логин или пароль',
     'TOO_MANY_ATTEMPTS_TRY_LATER': 'Слишком много попыток. Подождите.'
   };
@@ -159,6 +160,8 @@ function loadUsersList() {
     if (!users) { list.innerHTML = '<div style="color:var(--text-muted);padding:12px;">Нет пользователей</div>'; return; }
     Object.keys(users).forEach(function(uid) {
       var u = users[uid];
+      if (!uid || uid === 'undefined') return;
+      if (u && u.disabled === true) return; // скрываем заблокированных
       var row = document.createElement('div');
       row.style.cssText = 'display:flex;align-items:center;gap:10px;padding:12px 0;border-bottom:1px solid var(--border);';
       row.innerHTML = '<div style="flex:1;min-width:0;">'

@@ -24,9 +24,17 @@ function authLogin(login, password) {
     return fetch(FIREBASE_URL + '/users/' + uid + '.json?auth=' + token)
       .then(function(r){ return r.json(); })
       .then(function(rec) {
+        // Проверяем заблокирован ли пользователь
+        if (rec && rec.disabled === true) {
+          throw new Error('ACCOUNT_DISABLED');
+        }
+        // Если записи нет в /users — аккаунт удалён
+        if (!rec || !rec.role) {
+          throw new Error('ACCOUNT_DISABLED');
+        }
         currentUser = {
           uid: uid, token: token,
-          refreshToken: d.refreshToken,        // ← сохраняем для обновления
+          refreshToken: d.refreshToken,
           login: login, email: d.email,
           name: (rec && rec.name) || login,
           role: (rec && rec.role) || 'cook',
@@ -52,12 +60,17 @@ function authRestoreSession() {
   } catch(e) { currentUser = null; }
 
   // Сразу возвращаем пользователя из localStorage (для синхронного использования),
-  // но в фоне подтягиваем свежие permissions из Firebase
+  // но в фоне подтягиваем свежие данные из Firebase
   if (currentUser && currentUser.uid && currentUser.token) {
     fetch(FIREBASE_URL + '/users/' + currentUser.uid + '.json?auth=' + currentUser.token)
       .then(function(r) { return r.json(); })
       .then(function(rec) {
-        if (!rec) return;
+        // Проверяем заблокирован ли пользователь — только если запись есть
+        if (rec && rec.disabled === true) {
+          authLogout();
+          return;
+        }
+        if (!rec) return; // запись не найдена — работаем с кешем
         currentUser.permissions = rec.permissions || null;
         currentUser.role        = rec.role || currentUser.role;
         currentUser.name        = rec.name || currentUser.name;
@@ -109,8 +122,12 @@ function adminUpdateRole(uid, role) {
 }
 
 function adminDeleteUser(uid) {
-  return fetch(FIREBASE_URL + '/users/' + uid + '.json?auth=' + currentUser.token, {
-    method: 'DELETE'
+  // Ставим disabled:true вместо удаления — аккаунт в Firebase Auth остаётся,
+  // но при попытке войти пользователь получит отказ
+  return fetch(FIREBASE_URL + '/users/' + uid + '/disabled.json?auth=' + currentUser.token, {
+    method: 'PUT',
+    headers: {'Content-Type':'application/json'},
+    body: JSON.stringify(true)
   }).then(function(r){ return r.json(); });
 }
 
