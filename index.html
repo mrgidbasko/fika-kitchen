@@ -5,31 +5,17 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="Fika Kitchen">
-<link rel="apple-touch-icon" href="/icon192.png">
 <title>Fika Kitchen</title>
 <link rel="manifest" href="manifest.json">
-<meta name="theme-color" content="#F7F4EF" media="(prefers-color-scheme: light)">
-<meta name="theme-color" content="#1A1917" media="(prefers-color-scheme: dark)" id="theme-color-meta">
-<!-- Критичные стили инлайн — чтобы не было чёрного экрана пока грузится CSS -->
-<style>
-  body { margin:0; background:#F7F4EF; }
-  @media (prefers-color-scheme: dark) { body { background:#1A1917; } }
-  #loader { background:#F7F4EF; }
-  @media (prefers-color-scheme: dark) { #loader { background:#1A1917; } }
-  #loader-title { color:#1A1917; }
-  @media (prefers-color-scheme: dark) { #loader-title { color:#F7F4EF; } }
-</style>
-<!-- Шрифты асинхронно — не блокируют рендер -->
+<meta name="theme-color" content="#F7F4EF" id="theme-color-meta">
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
 
-<div id="loader" style="display:flex;position:fixed;inset:0;z-index:9999;align-items:center;justify-content:center;flex-direction:column;gap:12px">
-  <div id="loader-title" style="font-family:'Syne',sans-serif;font-size:22px;font-weight:700">Fika <em style="color:#C04F14;font-style:normal">Kitchen</em></div>
+<div id="loader" style="display:none;position:fixed;inset:0;background:var(--bg);z-index:9999;align-items:center;justify-content:center;flex-direction:column;gap:12px">
+  <div style="font-family:'Syne',sans-serif;font-size:22px;font-weight:700">Fika <em style="color:#C04F14;font-style:normal">Kitchen</em></div>
   <div style="color:#ABA59E;font-size:13px">Загрузка...</div>
 </div>
 
@@ -50,7 +36,7 @@
   <button onclick="clearClipboard()" style="background:none;border:none;color:#ABA59E;font-size:16px;cursor:pointer;padding:0 0 0 4px;line-height:1">×</button>
 </div>
 
-<div class="app" style="display:none">
+<div class="app">
   <div class="header">
     <div class="header-top">
       <div style="width:36px;flex-shrink:0;"></div>
