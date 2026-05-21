@@ -1,9 +1,11 @@
-var CACHE = 'fika-v9';
+var CACHE = 'fika-v10';
 var FILES = [
   '/',
   '/index.html',
   '/style.css',
   '/app.js',
+  '/auth.js',
+  '/auth_logic.js',
   '/data.js',
   '/offline-queue.js',
   '/cutting.js',

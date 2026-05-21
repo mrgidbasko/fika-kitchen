@@ -54,8 +54,43 @@ function ensurePfZones() {
   Object.keys(PF).forEach(function(k){ if (!Array.isArray(PF[k])) PF[k] = []; });
 }
 
+function _applyLoadedData(dishes, rawPF, sectionMeta, zoneMeta, sectionOrder, zoneOrder) {
+  DISHES = (dishes && typeof dishes === 'object') ? dishes
+         : (typeof DISHES === 'object' ? DISHES : {});
+  var pf = (rawPF && typeof rawPF === 'object') ? rawPF
+         : (typeof PF === 'object' ? PF : {});
+  PF = {};
+  Object.keys(pf).forEach(function(k) {
+    PF[k] = (pf[k] && pf[k]._empty) ? [] : pf[k];
+  });
+  window.SECTION_META  = (sectionMeta  && typeof sectionMeta  === 'object') ? sectionMeta  : {};
+  window.ZONE_META     = (zoneMeta     && typeof zoneMeta     === 'object') ? zoneMeta     : {};
+  window.SECTION_ORDER = (sectionOrder && Array.isArray(sectionOrder))      ? sectionOrder : null;
+  window.ZONE_ORDER    = (zoneOrder    && Array.isArray(zoneOrder))         ? zoneOrder    : null;
+  ensurePfZones();
+  refreshSectionSelect();
+  renderZonesGrid();
+}
+
 function loadData() {
-  showLoader(true);
+  // Сразу показываем кэш — пользователь видит UI мгновенно
+  try {
+    var cached = JSON.parse(localStorage.getItem('fika_cache') || '{}');
+    if (cached.dishes || cached.pf) {
+      _applyLoadedData(
+        cached.dishes, cached.pf,
+        cached.sectionMeta, cached.zoneMeta,
+        cached.sectionOrder, cached.zoneOrder
+      );
+      showLoader(false);
+    } else {
+      showLoader(true);
+    }
+  } catch(e) {
+    showLoader(true);
+  }
+
+  // Параллельно тянем свежие данные из Firebase
   Promise.all([
     fbGet('/dishes'),
     fbGet('/pf'),
@@ -64,29 +99,7 @@ function loadData() {
     fbGet('/sectionOrder'),
     fbGet('/zoneOrder')
   ]).then(function(results) {
-    var dishes      = results[0];
-    var rawPF       = results[1];
-    var sectionMeta = results[2];
-    var zoneMeta    = results[3];
-    var sectionOrder = results[4];
-    var zoneOrder    = results[5];
-
-    DISHES = (dishes && typeof dishes === 'object') ? dishes
-           : (typeof DISHES === 'object' ? DISHES : {});
-
-    var pf = (rawPF && typeof rawPF === 'object') ? rawPF
-           : (typeof PF === 'object' ? PF : {});
-    PF = {};
-    Object.keys(pf).forEach(function(k) {
-      PF[k] = (pf[k] && pf[k]._empty) ? [] : pf[k];
-    });
-
-    window.SECTION_META  = (sectionMeta  && typeof sectionMeta  === 'object') ? sectionMeta  : {};
-    window.ZONE_META     = (zoneMeta     && typeof zoneMeta     === 'object') ? zoneMeta     : {};
-    window.SECTION_ORDER = (sectionOrder && Array.isArray(sectionOrder))      ? sectionOrder : null;
-    window.ZONE_ORDER    = (zoneOrder    && Array.isArray(zoneOrder))         ? zoneOrder    : null;
-
-    ensurePfZones();
+    _applyLoadedData(results[0], results[1], results[2], results[3], results[4], results[5]);
     try {
       localStorage.setItem('fika_cache', JSON.stringify({
         dishes: DISHES, pf: PF,
@@ -95,23 +108,11 @@ function loadData() {
       }));
     } catch(e) {}
     showLoader(false);
-    refreshSectionSelect();
-    renderZonesGrid();
   }).catch(function() {
-    // Офлайн — берём данные из localStorage кэша
-    try {
-      var cached = JSON.parse(localStorage.getItem('fika_cache') || '{}');
-      if (cached.dishes) DISHES = cached.dishes;
-      if (cached.pf) PF = cached.pf;
-      if (cached.sectionMeta) window.SECTION_META = cached.sectionMeta;
-      if (cached.zoneMeta)    window.ZONE_META    = cached.zoneMeta;
-      if (cached.sectionOrder) window.SECTION_ORDER = cached.sectionOrder;
-      if (cached.zoneOrder)    window.ZONE_ORDER    = cached.zoneOrder;
-    } catch(e) {}
+    showLoader(false);
     if (typeof DISHES !== 'object') DISHES = {};
     if (typeof PF     !== 'object') PF     = {};
     ensurePfZones();
-    showLoader(false);
     refreshSectionSelect();
     renderZonesGrid();
   });
