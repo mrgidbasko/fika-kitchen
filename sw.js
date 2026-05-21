@@ -1,4 +1,4 @@
-var CACHE = 'fika-v11';
+var CACHE = 'fika-v12';
 var FILES = [
   '/',
   '/index.html',
@@ -21,6 +21,8 @@ self.addEventListener('install', function(e) {
   e.waitUntil(
     caches.open(CACHE).then(function(cache) {
       return cache.addAll(FILES);
+    }).then(function() {
+      return self.skipWaiting(); // сразу активируем, не ждём закрытия вкладок
     })
   );
 });
