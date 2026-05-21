@@ -105,30 +105,38 @@ function adminCreateUser(login, password, name, role) {
   .then(function(r){ return r.json(); })
   .then(function(d) {
     if (d.error) throw new Error(d.error.message);
-    return fetch(FIREBASE_URL + '/users/' + d.localId + '.json?auth=' + currentUser.token, {
-      method: 'PUT',
-      headers: {'Content-Type':'application/json'},
-      body: JSON.stringify({email:email, login:login, name:name||login, role:role||'cook', createdAt:Date.now()})
-    }).then(function(r){ return r.json(); });
+    var newUid = d.localId;
+    // Берём свежий токен перед записью в базу
+    return authGetFreshToken().then(function(token) {
+      return fetch(FIREBASE_URL + '/users/' + newUid + '.json?auth=' + token, {
+        method: 'PUT',
+        headers: {'Content-Type':'application/json'},
+        body: JSON.stringify({email:email, login:login, name:name||login, role:role||'cook', createdAt:Date.now()})
+      }).then(function(r){ return r.json(); });
+    });
   });
 }
 
 function adminUpdateRole(uid, role) {
-  return fetch(FIREBASE_URL + '/users/' + uid + '/role.json?auth=' + currentUser.token, {
-    method: 'PUT',
-    headers: {'Content-Type':'application/json'},
-    body: JSON.stringify(role)
-  }).then(function(r){ return r.json(); });
+  return authGetFreshToken().then(function(token) {
+    return fetch(FIREBASE_URL + '/users/' + uid + '/role.json?auth=' + token, {
+      method: 'PUT',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify(role)
+    }).then(function(r){ return r.json(); });
+  });
 }
 
 function adminDeleteUser(uid) {
   // Ставим disabled:true вместо удаления — аккаунт в Firebase Auth остаётся,
   // но при попытке войти пользователь получит отказ
-  return fetch(FIREBASE_URL + '/users/' + uid + '/disabled.json?auth=' + currentUser.token, {
-    method: 'PUT',
-    headers: {'Content-Type':'application/json'},
-    body: JSON.stringify(true)
-  }).then(function(r){ return r.json(); });
+  return authGetFreshToken().then(function(token) {
+    return fetch(FIREBASE_URL + '/users/' + uid + '/disabled.json?auth=' + token, {
+      method: 'PUT',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify(true)
+    }).then(function(r){ return r.json(); });
+  });
 }
 
 // ---- Token refresh (токен живёт 1 час, нужно обновлять) ----
