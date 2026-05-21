@@ -1,4 +1,4 @@
-var CACHE = 'fika-v10';
+var CACHE = 'fika-v11';
 var FILES = [
   '/',
   '/index.html',
@@ -11,7 +11,10 @@ var FILES = [
   '/cutting.js',
   '/writeoff.js',
   '/loader.js',
-  '/config.js'
+  '/config.js',
+  '/manifest.json',
+  '/icon192.png',
+  '/icon512.png'
 ];
 
 self.addEventListener('install', function(e) {
