@@ -1,4 +1,4 @@
-var CACHE = 'fika-v13';
+var CACHE = 'fika-v14';
 var FILES = [
   '/',
   '/index.html',
@@ -20,7 +20,13 @@ var FILES = [
 self.addEventListener('install', function(e) {
   e.waitUntil(
     caches.open(CACHE).then(function(cache) {
-      return cache.addAll(FILES);
+      // Поштучно, а не addAll: один отсутствующий/сбойный файл (напр. иконки
+      // в DEV) не должен ронять кэширование всех остальных файлов.
+      return Promise.all(FILES.map(function(url) {
+        return cache.add(url).catch(function(err) {
+          console.warn('SW: не удалось закэшировать', url, err);
+        });
+      }));
     }).then(function() {
       return self.skipWaiting(); // сразу активируем, не ждём закрытия вкладок
     })
