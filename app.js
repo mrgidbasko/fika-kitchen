@@ -102,25 +102,30 @@ function _applyLoadedData(dishes, rawPF, sectionMeta, zoneMeta, sectionOrder, zo
   renderZonesGrid();
 }
 
-function loadData() {
-  // Сразу показываем кэш — пользователь видит UI мгновенно
-  var hasCache = false;
+// Синхронно применяет кэш в DISHES/PF/ZONE_META ДО первого рендера.
+// Нужно потому, что initAuth → hideAuthScreen → unlockAdmin вызывает
+// renderZonesGrid ещё до loadData; без предзагрузки первый кадр рисует
+// только 3 фиксированные карточки (PF пустой) → мигание серых карточек.
+// Идемпотентна: повторный вызов из loadData безвреден (данные те же).
+function _preloadCache() {
   try {
     var cached = JSON.parse(localStorage.getItem('fika_cache') || '{}');
     if (cached.dishes || cached.pf) {
-      hasCache = true;
       _applyLoadedData(
         cached.dishes, cached.pf,
         cached.sectionMeta, cached.zoneMeta,
         cached.sectionOrder, cached.zoneOrder
       );
-      showLoader(false);
-    } else {
-      showLoader(true);
+      return true;
     }
-  } catch(e) {
-    showLoader(true);
-  }
+  } catch(e) {}
+  return false;
+}
+
+function loadData() {
+  // Сразу показываем кэш — пользователь видит UI мгновенно
+  var hasCache = _preloadCache();
+  if (hasCache) showLoader(false); else showLoader(true);
 
   // Таймаут 8 сек — если Firebase не ответил, показываем что есть.
   // ensurePfZones убран отсюда: он маскировал сбои, создавая пустые цеха.

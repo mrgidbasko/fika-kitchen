@@ -125,6 +125,10 @@ function authSubmit() {
 function initAuth() {
   var user = authRestoreSession();
   if (user) {
+    // Предзагружаем кэш ДО hideAuthScreen: иначе unlockAdmin/lockAdmin внутри
+    // hideAuthScreen вызовет renderZonesGrid с пустым PF/ZONE_META и нарисует
+    // только 3 фиксированные карточки → мигание серых карточек на 1-2 сек.
+    if (typeof _preloadCache === 'function') _preloadCache();
     hideAuthScreen();
     // Гарантируем свежий ID-токен ДО загрузки данных: токен живёт 1 час,
     // после неактивности он почти всегда протухший, и Firebase Rules
