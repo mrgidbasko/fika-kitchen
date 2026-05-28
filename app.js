@@ -13,21 +13,51 @@ function fbToken() {
 function fbGet(path) {
   var token = fbToken();
   var auth  = token ? '?auth=' + token : '';
-  return fetch(FIREBASE_URL + DB_PREFIX + path + '.json' + auth).then(function(r){ return r.json(); });
+  return fetch(FIREBASE_URL + DB_PREFIX + path + '.json' + auth).then(function(r){
+    if (!r.ok) {
+      var err = new Error('HTTP ' + r.status);
+      err.status = r.status;
+      throw err;
+    }
+    return r.json().then(function(d) {
+      // Firebase иногда возвращает 200 + {error:"..."} — тоже считаем ошибкой,
+      // иначе битый объект молча попадёт в DISHES/PF/ZONE_META
+      if (d && typeof d === 'object' && d.error && Object.keys(d).length === 1) {
+        var err2 = new Error('FB_ERROR: ' + d.error);
+        err2.fbError = d.error;
+        throw err2;
+      }
+      return d;
+    });
+  });
 }
 function fbSet(path, data) {
   var token = fbToken();
   var auth  = token ? '?auth=' + token : '';
   return fetch(FIREBASE_URL + DB_PREFIX + path + '.json' + auth, {
     method: 'PUT', headers: {'Content-Type':'application/json'}, body: JSON.stringify(data)
-  }).then(function(r){ return r.json(); });
+  }).then(function(r){
+    if (!r.ok) {
+      var err = new Error('HTTP ' + r.status);
+      err.status = r.status;
+      throw err;
+    }
+    return r.json();
+  });
 }
 function fbUpdate(path, data) {
   var token = fbToken();
   var auth  = token ? '?auth=' + token : '';
   return fetch(FIREBASE_URL + DB_PREFIX + path + '.json' + auth, {
     method: 'PATCH', headers: {'Content-Type':'application/json'}, body: JSON.stringify(data)
-  }).then(function(r){ return r.json(); });
+  }).then(function(r){
+    if (!r.ok) {
+      var err = new Error('HTTP ' + r.status);
+      err.status = r.status;
+      throw err;
+    }
+    return r.json();
+  });
 }
 
 // ============================================================
@@ -74,9 +104,11 @@ function _applyLoadedData(dishes, rawPF, sectionMeta, zoneMeta, sectionOrder, zo
 
 function loadData() {
   // Сразу показываем кэш — пользователь видит UI мгновенно
+  var hasCache = false;
   try {
     var cached = JSON.parse(localStorage.getItem('fika_cache') || '{}');
     if (cached.dishes || cached.pf) {
+      hasCache = true;
       _applyLoadedData(
         cached.dishes, cached.pf,
         cached.sectionMeta, cached.zoneMeta,
@@ -90,25 +122,28 @@ function loadData() {
     showLoader(true);
   }
 
-  // Таймаут 8 сек — если Firebase не ответил, показываем что есть
+  // Таймаут 8 сек — если Firebase не ответил, показываем что есть.
+  // ensurePfZones убран отсюда: он маскировал сбои, создавая пустые цеха.
   var loadTimer = setTimeout(function() {
     showLoader(false);
     if (typeof DISHES !== 'object') DISHES = {};
     if (typeof PF !== 'object') PF = {};
-    ensurePfZones();
     refreshSectionSelect();
     renderZonesGrid();
   }, 8000);
 
-  // Параллельно тянем свежие данные из Firebase
-  Promise.all([
-    fbGet('/dishes'),
-    fbGet('/pf'),
-    fbGet('/sectionMeta'),
-    fbGet('/zoneMeta'),
-    fbGet('/sectionOrder'),
-    fbGet('/zoneOrder')
-  ]).then(function(results) {
+  function fetchAll() {
+    return Promise.all([
+      fbGet('/dishes'),
+      fbGet('/pf'),
+      fbGet('/sectionMeta'),
+      fbGet('/zoneMeta'),
+      fbGet('/sectionOrder'),
+      fbGet('/zoneOrder')
+    ]);
+  }
+
+  function applyAndCache(results) {
     clearTimeout(loadTimer);
     _applyLoadedData(results[0], results[1], results[2], results[3], results[4], results[5]);
     try {
@@ -119,15 +154,50 @@ function loadData() {
       }));
     } catch(e) {}
     showLoader(false);
-  }).catch(function() {
+  }
+
+  function isAuthError(err) {
+    return !!(err && (err.status === 401 || err.status === 403
+      || (err.fbError && /permission|unauthorized/i.test(err.fbError))));
+  }
+
+  function handleFailure(err) {
     clearTimeout(loadTimer);
     showLoader(false);
-    if (typeof DISHES !== 'object') DISHES = {};
-    if (typeof PF     !== 'object') PF     = {};
-    ensurePfZones();
-    refreshSectionSelect();
-    renderZonesGrid();
-  });
+
+    // Auth-ошибка после ретрая — кэш НЕ трогаем (страховка от частичных сбоев),
+    // на логин выкидываем только если онлайн (в офлайне токен и не проверить)
+    if (isAuthError(err)) {
+      console.warn('loadData: auth error after retry, требуется логин', err);
+      if (navigator.onLine && typeof authLogout === 'function') authLogout();
+      return;
+    }
+
+    // Сетевая ошибка / офлайн — оставляем кэш, на логин НЕ выкидываем
+    console.warn('loadData: network/offline или прочая ошибка, оставляем кэш', err);
+    if (!hasCache) {
+      // Кэша нет — рисуем пустой UI, но без воскрешения дефолтных цехов
+      if (typeof DISHES !== 'object') DISHES = {};
+      if (typeof PF     !== 'object') PF     = {};
+      refreshSectionSelect();
+      renderZonesGrid();
+    }
+  }
+
+  // Первая попытка
+  fetchAll()
+    .then(applyAndCache)
+    .catch(function(err) {
+      // 401/403 — обновляем токен и повторяем ровно один раз
+      if (isAuthError(err) && typeof authRefreshToken === 'function') {
+        console.warn('loadData: 401/403, обновляем токен и пробуем ещё раз');
+        return authRefreshToken().then(function(newToken) {
+          if (!newToken) return handleFailure(err);
+          return fetchAll().then(applyAndCache).catch(handleFailure);
+        }).catch(function() { return handleFailure(err); });
+      }
+      handleFailure(err);
+    });
 }
 
 function saveToFirebase() {
@@ -618,13 +688,15 @@ function renderZonesGrid() {
       // Блюда card - inserted at this position
       var dishMeta2 = (window.ZONE_META && window.ZONE_META['__dishes__']) || {};
       var isDark2 = document.body.classList.contains('dark');
-      var dishBg2   = (isDark2 && dishMeta2.bgColorDark) ? dishMeta2.bgColorDark : (dishMeta2.bgColor || '#C04F14');
-      var dishClr2  = (isDark2 && dishMeta2.colorDark)   ? dishMeta2.colorDark   : (dishMeta2.color   || '#fff');
+      var dishBg2   = (isDark2 && dishMeta2.bgColorDark) ? dishMeta2.bgColorDark : dishMeta2.bgColor;
+      var dishClr2  = (isDark2 && dishMeta2.colorDark)   ? dishMeta2.colorDark   : dishMeta2.color;
       var dishFs2   = dishMeta2.fontSize ? 'font-size:'+dishMeta2.fontSize+'px;' : '';
       var dc = document.createElement('div');
       dc.className = 'zone-card';
-      dc.style.cssText = 'background:'+dishBg2+';border-color:'+dishBg2+';cursor:pointer;';
-      dc.innerHTML = '<div class="zone-label" style="color:'+dishClr2+';'+dishFs2+'">Блюда</div>';
+      dc.style.cursor = 'pointer';
+      if (dishBg2) { dc.style.background = dishBg2; dc.style.borderColor = dishBg2; }
+      var dishLblStyle = (dishClr2 ? 'color:'+dishClr2+';' : '') + dishFs2;
+      dc.innerHTML = '<div class="zone-label" style="'+dishLblStyle+'">Блюда</div>';
       dc.dataset.action = 'openDishes';
       if (adminUnlocked) {
         var deb2 = document.createElement('button');
@@ -640,13 +712,15 @@ function renderZonesGrid() {
       // Разделка card
       var cutMeta2 = (window.ZONE_META && window.ZONE_META['__cutting__']) || {};
       var isDark3 = document.body.classList.contains('dark');
-      var cutBg2   = (isDark3 && cutMeta2.bgColorDark) ? cutMeta2.bgColorDark : (cutMeta2.bgColor || '#2D3142');
-      var cutClr2  = (isDark3 && cutMeta2.colorDark)   ? cutMeta2.colorDark   : (cutMeta2.color   || '#fff');
+      var cutBg2   = (isDark3 && cutMeta2.bgColorDark) ? cutMeta2.bgColorDark : cutMeta2.bgColor;
+      var cutClr2  = (isDark3 && cutMeta2.colorDark)   ? cutMeta2.colorDark   : cutMeta2.color;
       var cutFs2   = cutMeta2.fontSize ? 'font-size:'+cutMeta2.fontSize+'px;' : '';
       var cc = document.createElement('div');
       cc.className = 'zone-card';
-      cc.style.cssText = 'background:'+cutBg2+';border-color:'+cutBg2+';cursor:pointer;';
-      cc.innerHTML = '<div class="zone-label" style="color:'+cutClr2+';'+cutFs2+'">Разделка</div>';
+      cc.style.cursor = 'pointer';
+      if (cutBg2) { cc.style.background = cutBg2; cc.style.borderColor = cutBg2; }
+      var cutLblStyle = (cutClr2 ? 'color:'+cutClr2+';' : '') + cutFs2;
+      cc.innerHTML = '<div class="zone-label" style="'+cutLblStyle+'">Разделка</div>';
       cc.dataset.action = 'openCutting';
       if (adminUnlocked) {
         var ceb2 = document.createElement('button');
@@ -666,13 +740,15 @@ function renderZonesGrid() {
       if (!canSeeWriteoff) return; // cook без права writeOff не видит карточку
       var woMeta2 = (window.ZONE_META && window.ZONE_META['__writeoff__']) || {};
       var isDark5 = document.body.classList.contains('dark');
-      var woBg2   = (isDark5 && woMeta2.bgColorDark) ? woMeta2.bgColorDark : (woMeta2.bgColor || '#1A6B3C');
-      var woClr2  = (isDark5 && woMeta2.colorDark)   ? woMeta2.colorDark   : (woMeta2.color   || '#fff');
+      var woBg2   = (isDark5 && woMeta2.bgColorDark) ? woMeta2.bgColorDark : woMeta2.bgColor;
+      var woClr2  = (isDark5 && woMeta2.colorDark)   ? woMeta2.colorDark   : woMeta2.color;
       var woFs2   = woMeta2.fontSize ? 'font-size:'+woMeta2.fontSize+'px;' : '';
       var wc = document.createElement('div');
       wc.className = 'zone-card';
-      wc.style.cssText = 'background:'+woBg2+';border-color:'+woBg2+';cursor:pointer;';
-      wc.innerHTML = '<div class="zone-label" style="color:'+woClr2+';'+woFs2+'">Списание</div>';
+      wc.style.cursor = 'pointer';
+      if (woBg2) { wc.style.background = woBg2; wc.style.borderColor = woBg2; }
+      var woLblStyle = (woClr2 ? 'color:'+woClr2+';' : '') + woFs2;
+      wc.innerHTML = '<div class="zone-label" style="'+woLblStyle+'">Списание</div>';
       wc.dataset.action = 'openWriteoff';
       if (adminUnlocked) {
         var web2 = document.createElement('button');

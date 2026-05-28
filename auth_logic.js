@@ -126,7 +126,18 @@ function initAuth() {
   var user = authRestoreSession();
   if (user) {
     hideAuthScreen();
-    if (typeof loadData === 'function') loadData();
+    // Гарантируем свежий ID-токен ДО загрузки данных: токен живёт 1 час,
+    // после неактивности он почти всегда протухший, и Firebase Rules
+    // вернут 401 на все 6 fbGet'ов в loadData → битый главный экран.
+    var ensure = (typeof authGetFreshToken === 'function')
+      ? authGetFreshToken()
+      : Promise.resolve(currentUser && currentUser.token);
+    ensure.then(function() {
+      if (typeof loadData === 'function') loadData();
+    }).catch(function() {
+      // Даже если рефреш упал — пробуем loadData (он сам разрулит ретраем в catch)
+      if (typeof loadData === 'function') loadData();
+    });
   } else {
     showAuthScreen();
   }
