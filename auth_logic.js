@@ -266,7 +266,8 @@ function switchAdminPanelTab(tab) {
 var PERMISSIONS_LIST = [
   { key: 'writeOff',    label: 'Списание' },
   { key: 'editRaw',     label: 'Редактирование П/Ф' },
-  { key: 'editDishes',  label: 'Редактирование блюд' }
+  { key: 'editDishes',  label: 'Редактирование блюд' },
+  { key: 'styleEdit',   label: 'Стили карточек', adminOnly: true }
 ];
 
 function loadPermissionsList() {
@@ -301,8 +302,12 @@ function loadPermissionsList() {
       grid.style.cssText = 'display:grid;grid-template-columns:1fr 1fr;gap:6px;';
 
       PERMISSIONS_LIST.forEach(function(p) {
+        // styleEdit (adminOnly) — показываем только для admin-пользователей
+        if (p.adminOnly && u.role !== 'admin') return;
+
         // admin по умолчанию имеет все права; cook — нет (если не задано явно)
-        var defaultVal = u.role === 'admin';
+        // styleEdit — исключение: выключен по умолчанию даже для admin
+        var defaultVal = p.adminOnly ? false : (u.role === 'admin');
         var checked = (perms[p.key] !== undefined && perms[p.key] !== null)
           ? !!perms[p.key]
           : defaultVal;
@@ -386,6 +391,15 @@ function savePermission(uid, permKey, value) {
     }
     if (!r.ok) {
       r.text().then(function(t) { console.error('savePermission error:', r.status, t); });
+    } else {
+      // Обновить in-memory permissions если сохраняем для текущего пользователя
+      if (currentUser && uid === currentUser.uid) {
+        if (!currentUser.permissions) currentUser.permissions = {};
+        currentUser.permissions[permKey] = value;
+        try { var stored = JSON.parse(localStorage.getItem('fika_user') || '{}'); if (!stored.permissions) stored.permissions = {}; stored.permissions[permKey] = value; localStorage.setItem('fika_user', JSON.stringify(stored)); } catch(e2){}
+        if (typeof renderZonesGrid === 'function') renderZonesGrid();
+        if (typeof renderSectionsGrid === 'function') renderSectionsGrid();
+      }
     }
   }).catch(function(e) {
     console.error('savePermission fetch error:', e);
@@ -398,6 +412,10 @@ function savePermission(uid, permKey, value) {
 // ============================================================
 function hasPermission(key) {
   if (!currentUser) return false;
+  // styleEdit — только если явно включено, даже для admin
+  if (key === 'styleEdit') {
+    return !!(currentUser.permissions && currentUser.permissions[key]);
+  }
   if (currentUser.role === 'admin') return true;
   if (currentUser.permissions && currentUser.permissions[key] !== undefined) {
     return !!currentUser.permissions[key];

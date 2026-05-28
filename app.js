@@ -303,7 +303,7 @@ function renderSectionsGrid() {
       if (meta && meta.bgColor) { card.style.background = meta.bgColor; card.style.borderColor = meta.bgColor; }
       var lblStyle = (meta && meta.color ? 'color:'+meta.color+';' : '') + (meta && meta.fontSize ? 'font-size:'+meta.fontSize+'px;' : '');
       card.innerHTML = '<div class="section-card-label" style="'+lblStyle+'">' + s + '</div>';
-      if (adminUnlocked) {
+      if (hasPermission('styleEdit')) {
         var eb = document.createElement('button');
         eb.className = 'edit-btn style-edit-btn no-drag';
         eb.dataset.secName = s;
@@ -703,7 +703,7 @@ function renderZonesGrid() {
       var dishLblStyle = (dishClr2 ? 'color:'+dishClr2+';' : '') + dishFs2;
       dc.innerHTML = '<div class="zone-label" style="'+dishLblStyle+'">Блюда</div>';
       dc.dataset.action = 'openDishes';
-      if (adminUnlocked) {
+      if (hasPermission('styleEdit')) {
         var deb2 = document.createElement('button');
         deb2.className = 'edit-btn style-edit-btn no-drag';
         deb2.dataset.fixedZone = '__dishes__';
@@ -727,7 +727,7 @@ function renderZonesGrid() {
       var cutLblStyle = (cutClr2 ? 'color:'+cutClr2+';' : '') + cutFs2;
       cc.innerHTML = '<div class="zone-label" style="'+cutLblStyle+'">Разделка</div>';
       cc.dataset.action = 'openCutting';
-      if (adminUnlocked) {
+      if (hasPermission('styleEdit')) {
         var ceb2 = document.createElement('button');
         ceb2.className = 'edit-btn style-edit-btn no-drag';
         ceb2.dataset.fixedZone = '__cutting__';
@@ -755,7 +755,7 @@ function renderZonesGrid() {
       var woLblStyle = (woClr2 ? 'color:'+woClr2+';' : '') + woFs2;
       wc.innerHTML = '<div class="zone-label" style="'+woLblStyle+'">Списание</div>';
       wc.dataset.action = 'openWriteoff';
-      if (adminUnlocked) {
+      if (hasPermission('styleEdit')) {
         var web2 = document.createElement('button');
         web2.className = 'edit-btn style-edit-btn no-drag';
         web2.dataset.fixedZone = '__writeoff__';
@@ -775,7 +775,7 @@ function renderZonesGrid() {
       if (bg) { card.style.background=bg; card.style.borderColor=bg; }
       var lblStyle = (clr?'color:'+clr+';':'') + (meta.fontSize?'font-size:'+meta.fontSize+'px;':'');
       card.innerHTML = '<div class="zone-label" style="'+lblStyle+'">' + z + '</div>';
-      if (adminUnlocked) {
+      if (hasPermission('styleEdit')) {
         var zeb = document.createElement('button');
         zeb.className = 'edit-btn style-edit-btn no-drag';
         zeb.dataset.zoneName = z;
